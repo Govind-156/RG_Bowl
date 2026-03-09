@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String                @id @default(cuid())
+  name                    String
+  email                   String                @unique
+  password                String
+  phone                   String
+  role                    UserRole              @default(CUSTOMER)
+  createdAt               DateTime              @default(now())
+  referralCode            String?               @unique
+  referredById            String?
+  referredBy              User?                 @relation("UserReferredBy", fields: [referredById], references: [id], onDelete: SetNull)
+  referredUsers           User[]                @relation("UserReferredBy")
+  freeClassicMaggiAvailable Boolean             @default(false)
+  orders                  Order[]
+  passwordResetTokens     PasswordResetToken[]
+
+  @@map("users")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+model Dish {
+  id          String     @id @default(cuid())
+  name        String
+  description String
+  price       Int
+  image       String?
+  category    String
+  isAvailable Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  orderItems  OrderItem[]
+
+  @@map("dishes")
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  userId                String
+  totalAmount           Int
+  paymentId             String
+  status                OrderStatus @default(PLACED)
+  latitude              Float?
+  longitude             Float?
+  address               String   @db.Text
+  referralDiscountAmount Int     @default(0)
+  usedFreeClassicMaggi  Boolean    @default(false)
+  createdAt             DateTime @default(now())
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                 OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  orderId  String
+  dishId   String
+  quantity Int
+  price    Int
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dish     Dish  @relation(fields: [dishId], references: [id])
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PLACED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+model Settings {
+  id               Int      @id
+  operatingHours   String   @default("19:00-03:00")
+  isOrderingPaused Boolean  @default(false)
+  pauseReason      String?
+  @@map("settings")
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String
+  message   String   @db.Text
+  orderId   String?
+  createdAt DateTime @default(now())
+
+  @@map("contact_submissions")
+}

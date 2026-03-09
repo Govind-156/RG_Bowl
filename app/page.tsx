@@ -1,65 +1,88 @@
-import Image from "next/image";
+"use client";
+
+import { motion } from "framer-motion";
+import MenuSection from "@/components/menu/MenuSection";
+import CartDrawer from "@/components/cart/CartPlaceholder";
+import CheckoutPlaceholder from "@/components/checkout/CheckoutPlaceholder";
 
 export default function Home() {
+  const scrollToMenu = () => {
+    const el = document.getElementById("menu-section");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="relative flex min-h-screen flex-col items-center overflow-x-hidden">
+      {/* Gradient hero background - mobile-first */}
+      <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-center px-4 py-16 sm:min-h-[80vh] sm:px-6 sm:py-20 md:px-8">
+        <div
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0c0a09] via-[#1c1917] to-[#09090b]"
+          aria-hidden
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(251,191,36,0.08),transparent)]" aria-hidden />
+        <div className="absolute bottom-0 left-0 right-0 h-32 -z-10 bg-gradient-to-t from-[#09090b] to-transparent" aria-hidden />
+
+        <motion.div
+          className="max-w-2xl text-center"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <motion.p
+            className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-amber-400 sm:text-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
+          >
+            RG Bowl
+          </motion.p>
+          <h1 className="mb-3 text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl md:text-6xl">
+            Hot Maggi under 30 minutes.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mb-5 text-lg font-semibold text-amber-400 sm:text-xl md:text-2xl">
+            Not Quick. But Quality.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <motion.p
+            className="mb-8 text-sm leading-relaxed text-zinc-400 sm:text-base md:text-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Fresh comfort bowls made when you order. Built for late-night cravings in BTM, where
+            good food is worth the wait.
+          </motion.p>
+          <motion.div
+            className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <motion.button
+              type="button"
+              onClick={scrollToMenu}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.98 }}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-8 py-3.5 text-sm font-semibold text-black shadow-xl shadow-amber-400/25 transition-shadow hover:shadow-amber-400/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+            >
+              Order Now
+            </motion.button>
+            <p className="max-w-xs text-center text-xs text-zinc-500 sm:text-left sm:text-sm">
+              No surge pricing. Flat delivery. Just Maggi to your door.
+            </p>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Menu + checkout - responsive container */}
+      <section
+        id="menu-section"
+        className="flex w-full max-w-6xl flex-col items-center gap-6 px-4 pb-24 sm:px-6 sm:pb-28 md:px-8"
+      >
+        <MenuSection />
+        <CheckoutPlaceholder />
+      </section>
+
+      <CartDrawer />
+    </main>
   );
 }

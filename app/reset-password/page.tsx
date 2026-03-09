@@ -1,0 +1,171 @@
+"use client";
+
+import { FormEvent, useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+
+function ResetPasswordForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [invalidToken, setInvalidToken] = useState(false);
+
+  useEffect(() => {
+    if (token === null || token === "") {
+      setInvalidToken(true);
+    }
+  }, [token]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (!token) {
+      setInvalidToken(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, newPassword }),
+      });
+      const data = (await res.json()) as { error?: string };
+
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong. Please try again.");
+        if (data.error?.toLowerCase().includes("expired") || data.error?.toLowerCase().includes("invalid")) {
+          setInvalidToken(true);
+        }
+        return;
+      }
+
+      router.push("/login?reset=1");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (invalidToken) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-black px-6 py-16 text-zinc-50">
+        <section className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950/80 p-6 shadow-lg text-center">
+          <h1 className="mb-2 text-xl font-semibold tracking-tight">
+            Link expired or invalid
+          </h1>
+          <p className="mb-6 text-sm text-zinc-400">
+            This reset link has expired or is invalid. Request a new one below.
+          </p>
+          <Link
+            href="/forgot-password"
+            className="inline-flex items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-black shadow-md hover:bg-amber-300"
+          >
+            Get new reset link
+          </Link>
+          <p className="mt-4 text-center text-xs text-zinc-400">
+            <Link href="/login" className="font-medium text-amber-400 hover:text-amber-300">
+              ← Back to login
+            </Link>
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-black px-6 py-16 text-zinc-50">
+      <section className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950/80 p-6 shadow-lg">
+        <h1 className="mb-2 text-xl font-semibold tracking-tight">
+          Set new password
+        </h1>
+        <p className="mb-6 text-sm text-zinc-400">
+          Enter your new password below.
+        </p>
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-1.5">
+            <label
+              className="text-xs font-medium text-zinc-300"
+              htmlFor="newPassword"
+            >
+              New password
+            </label>
+            <input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-amber-400"
+              placeholder="At least 6 characters"
+              required
+              minLength={6}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label
+              className="text-xs font-medium text-zinc-300"
+              htmlFor="confirmPassword"
+            >
+              Confirm password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-amber-400"
+              placeholder="Confirm new password"
+              required
+              minLength={6}
+            />
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex w-full items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-black shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+          >
+            {isSubmitting ? "Updating…" : "Update password"}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-xs text-zinc-400">
+          <Link href="/login" className="font-medium text-amber-400 hover:text-amber-300">
+            ← Back to login
+          </Link>
+        </p>
+      </section>
+    </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-black text-zinc-400">
+          <p>Loading…</p>
+        </main>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}

@@ -1,0 +1,491 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { z } from "zod";
+import { useCartStore } from "@/lib/cart-store";
+import {
+  DELIVERY_CHARGE,
+  CLASSIC_MAGGI_PRICE,
+  REFERRAL_FIRST_ORDER_DISCOUNT,
+} from "@/lib/constants";
+
+const checkoutSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  phone: z
+    .string()
+    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
+  address: z.string().min(1, "Delivery address is required"),
+  roomNumber: z.string().min(1, "Room number is required"),
+});
+
+type CheckoutForm = z.infer<typeof checkoutSchema>;
+
+/** Reverse geocode lat/lng to address using OpenStreetMap Nominatim. */
+async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  const url = new URL("https://nominatim.openstreetmap.org/reverse");
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lon));
+  url.searchParams.set("format", "json");
+  const res = await fetch(url.toString(), {
+    headers: {
+      "User-Agent": "MidnightMaggiBTM/1.0 (food delivery; contact optional)",
+    },
+  });
+  if (!res.ok) throw new Error("Could not fetch address");
+  const data = (await res.json()) as { display_name?: string };
+  return data.display_name ?? `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+}
+
+async function loadRazorpayScript() {
+  if (typeof window === "undefined") return false;
+  if (document.getElementById("razorpay-checkout-js")) return true;
+  return new Promise<boolean>((resolve) => {
+    const script = document.createElement("script");
+    script.id = "razorpay-checkout-js";
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const { items, totalAmount: subtotal, clearCart } = useCartStore();
+
+  const [referralStatus, setReferralStatus] = useState<{
+    firstOrder25Off: boolean;
+    freeClassicMaggiAvailable: boolean;
+  } | null>(null);
+  const [form, setForm] = useState<CheckoutForm>({
+    name: "",
+    phone: "",
+    address: "",
+    roomNumber: "",
+  });
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const user = session?.user as { name?: string | null; phone?: string | null } | undefined;
+  useEffect(() => {
+    if (!user) return;
+    setForm((prev) => ({
+      ...prev,
+      name: prev.name || (user.name ?? "") || "",
+      phone: prev.phone || (user.phone ?? "") || "",
+    }));
+  }, [user?.name, user?.phone]);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login?callbackUrl=/checkout");
+      return;
+    }
+    if (status === "authenticated" && items.length === 0) {
+      router.replace("/");
+    }
+  }, [status, items.length, router]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    let cancelled = false;
+    fetch("/api/me/referral-status", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data)
+          setReferralStatus({
+            firstOrder25Off: data.firstOrder25Off ?? false,
+            freeClassicMaggiAvailable: data.freeClassicMaggiAvailable ?? false,
+          });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [status]);
+
+  const referralDiscount =
+    referralStatus?.firstOrder25Off ?? false
+      ? Math.round(subtotal * REFERRAL_FIRST_ORDER_DISCOUNT)
+      : 0;
+  const freeClassicDiscount =
+    referralStatus?.freeClassicMaggiAvailable ?? false ? CLASSIC_MAGGI_PRICE : 0;
+  const totalDiscount = referralDiscount + freeClassicDiscount;
+  const discountedSubtotal = Math.max(0, subtotal - totalDiscount);
+  const totalPrice = discountedSubtotal + DELIVERY_CHARGE;
+  const usedFreeClassicMaggi = freeClassicDiscount > 0;
+
+  const validation = checkoutSchema.safeParse(form);
+  const fieldErrors = !validation.success
+    ? validation.error.flatten().fieldErrors
+    : {};
+  const isFormValid = validation.success;
+
+  const handleChange =
+    (field: keyof CheckoutForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+      setError(null);
+      if (submitted) setSubmitted(false);
+    };
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Location is not supported by your browser.");
+      return;
+    }
+    setLocationStatus("loading");
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        try {
+          const address = await reverseGeocode(lat, lon);
+          setLatitude(lat);
+          setLongitude(lon);
+          setForm((prev) => ({ ...prev, address }));
+          setLocationStatus("success");
+        } catch {
+          setLatitude(lat);
+          setLongitude(lon);
+          setForm((prev) => ({
+            ...prev,
+            address: `${lat.toFixed(6)}, ${lon.toFixed(6)}`,
+          }));
+          setLocationStatus("success");
+        }
+      },
+      () => {
+        setLocationStatus("error");
+        setError("Could not get your location. Check permissions or enter address manually.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  };
+
+  const handlePay = async () => {
+    setSubmitted(true);
+    if (!isFormValid || items.length === 0) return;
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Block checkout if ordering is paused — show message and do not open payment
+      const settingsRes = await fetch("/api/settings", { cache: "no-store" });
+      if (settingsRes.ok) {
+        const settings = (await settingsRes.json()) as { isOrderingPaused?: boolean; pauseReason?: string | null };
+        if (settings.isOrderingPaused) {
+          setError(settings.pauseReason?.trim() || "Ordering is currently paused. Please try again later.");
+          return;
+        }
+      }
+
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        setError("Payment gateway could not be loaded. Check your connection and try again.");
+        return;
+      }
+
+      const amountPaise = totalPrice * 100;
+      const createRes = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amountPaise,
+          currency: "INR",
+          receipt: `mm_${Date.now()}`,
+          notes: {
+            userId: (session?.user as { id?: string })?.id,
+            name: form.name,
+            phone: form.phone,
+            address: form.address,
+            roomNumber: form.roomNumber,
+          },
+        }),
+      });
+
+      if (!createRes.ok) {
+        const data = (await createRes.json().catch(() => ({}))) as { error?: string; message?: string };
+        setError(data.error || data.message || "Failed to start payment. Try again.");
+        return;
+      }
+
+      const orderData = await createRes.json();
+      const fullAddress = `${form.address.trim()}, Room: ${form.roomNumber.trim()}`;
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "RG Bowl",
+        description: "Order payment",
+        order_id: orderData.id,
+        prefill: { name: form.name, contact: form.phone },
+        theme: { color: "#fbbf24" },
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          try {
+            const verifyRes = await fetch("/api/payments/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                order: {
+                  userId: (session?.user as { id?: string })?.id,
+                  address: fullAddress,
+                  latitude: latitude ?? undefined,
+                  longitude: longitude ?? undefined,
+                  items: items.map((i) => ({
+                    id: i.id,
+                    name: i.name,
+                    quantity: i.quantity,
+                    price: i.price,
+                  })),
+                  totalAmount: totalPrice,
+                  referralDiscountAmount: totalDiscount,
+                  usedFreeClassicMaggi,
+                },
+              }),
+            });
+
+            if (!verifyRes.ok) {
+              const errData = (await verifyRes.json().catch(() => ({}))) as { error?: string };
+              setError(errData?.error ?? "Payment verification failed. Contact support if you were charged.");
+              return;
+            }
+
+            const verifyData = (await verifyRes.json()) as { order?: { id?: string } };
+            const orderId = verifyData?.order?.id;
+
+            // Order created successfully. Clear cart then redirect with full page load so redirect always happens (Razorpay modal can close before router.push runs).
+            const summary = {
+              items: items.map((i) => ({ id: i.id, name: i.name, quantity: i.quantity })),
+              totalAmount: totalPrice,
+            };
+            clearCart();
+            const placed = Date.now();
+            const successUrl = orderId
+              ? `/success?orderId=${encodeURIComponent(orderId)}&summary=${encodeURIComponent(JSON.stringify(summary))}&placed=${placed}`
+              : `/success?summary=${encodeURIComponent(JSON.stringify(summary))}&placed=${placed}`;
+            window.location.href = successUrl;
+          } catch (e) {
+            console.error("Payment verify error", e);
+            setError("Something went wrong after payment. Contact support if you were charged.");
+          }
+        },
+        modal: { ondismiss: () => setError("Payment cancelled. You can try again.") },
+      };
+
+      type RazorpayInstance = { open: () => void };
+      type RazorpayConstructor = new (opts: unknown) => RazorpayInstance;
+      const w = window as Window & { Razorpay?: RazorpayConstructor };
+      const Razorpay = w.Razorpay;
+      if (!Razorpay) {
+        setError("Payment gateway could not be loaded. Please try again.");
+        return;
+      }
+      new Razorpay(options).open();
+    } catch {
+      setError("Unable to start payment. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (status === "loading" || (status === "authenticated" && items.length === 0)) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-black text-zinc-400">
+        <p>Loading…</p>
+      </main>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return null;
+  }
+
+  return (
+    <main className="min-h-screen bg-black px-4 py-8 text-zinc-50 sm:px-6">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="mb-6 text-xl font-semibold tracking-tight sm:text-2xl">
+          Checkout
+        </h1>
+
+        <section className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-6">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            Order summary
+          </h2>
+          <ul className="space-y-3">
+            {items.map((item) => (
+              <li
+                key={item.id}
+                className="flex justify-between text-sm"
+              >
+                <span className="text-zinc-300">
+                  {item.name} × {item.quantity}
+                </span>
+                <span className="font-medium text-amber-300">
+                  ₹{item.price * item.quantity}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 space-y-2 border-t border-zinc-800 pt-4 text-sm">
+            <div className="flex justify-between text-zinc-400">
+              <span>Subtotal</span>
+              <span>₹{subtotal}</span>
+            </div>
+            {referralDiscount > 0 && (
+              <div className="flex justify-between text-emerald-400">
+                <span>25% off (referral)</span>
+                <span>-₹{referralDiscount}</span>
+              </div>
+            )}
+            {freeClassicDiscount > 0 && (
+              <div className="flex justify-between text-emerald-400">
+                <span>Free Classic Maggi (referral)</span>
+                <span>-₹{freeClassicDiscount}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-zinc-400">
+              <span>Delivery charge</span>
+              <span>₹{DELIVERY_CHARGE}</span>
+            </div>
+            <div className="flex justify-between border-t border-zinc-800 pt-2 text-base font-semibold text-zinc-50">
+              <span>Total</span>
+              <span className="text-amber-300">₹{totalPrice}</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-6">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            Delivery details
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="mb-1 block text-xs font-medium text-zinc-400">
+                Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={form.name}
+                onChange={handleChange("name")}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none"
+                placeholder="Your full name"
+              />
+              {submitted && fieldErrors.name?.[0] && (
+                <p className="mt-1 text-xs text-red-400">{fieldErrors.name[0]}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="phone" className="mb-1 block text-xs font-medium text-zinc-400">
+                Phone
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange("phone")}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none"
+                placeholder="10-digit mobile number"
+              />
+              {submitted && fieldErrors.phone?.[0] && (
+                <p className="mt-1 text-xs text-red-400">{fieldErrors.phone[0]}</p>
+              )}
+            </div>
+            <div>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <label htmlFor="address" className="block text-xs font-medium text-zinc-400">
+                  Address
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseMyLocation}
+                  disabled={locationStatus === "loading"}
+                  className="rounded-full border border-amber-400/60 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-300 transition hover:bg-amber-400/20 disabled:opacity-50"
+                >
+                  {locationStatus === "loading"
+                    ? "Getting location…"
+                    : "Use My Location"}
+                </button>
+              </div>
+              {latitude != null && longitude != null && (
+                <p className="mb-1.5 text-[11px] text-zinc-500">
+                  Location: {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                </p>
+              )}
+              <textarea
+                id="address"
+                value={form.address}
+                onChange={handleChange("address")}
+                rows={3}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none"
+                placeholder="PG / Hostel name, building, area — or use “Use My Location”"
+              />
+              {submitted && fieldErrors.address?.[0] && (
+                <p className="mt-1 text-xs text-red-400">{fieldErrors.address[0]}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="roomNumber" className="mb-1 block text-xs font-medium text-zinc-400">
+                Room number
+              </label>
+              <input
+                id="roomNumber"
+                type="text"
+                value={form.roomNumber}
+                onChange={handleChange("roomNumber")}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none"
+                placeholder="e.g. 203, Block B"
+              />
+              {submitted && fieldErrors.roomNumber?.[0] && (
+                <p className="mt-1 text-xs text-red-400">{fieldErrors.roomNumber[0]}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {error && (
+          <p className="mb-4 rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
+            {error}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Link
+            href="/"
+            className="text-center text-sm text-zinc-400 underline hover:text-zinc-300"
+          >
+            ← Back to menu
+          </Link>
+          <button
+            type="button"
+            disabled={!isFormValid || isProcessing}
+            onClick={handlePay}
+            className="rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+          >
+            {isProcessing ? "Opening payment…" : `Pay ₹${totalPrice}`}
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}

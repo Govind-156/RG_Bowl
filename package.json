@@ -6,12 +6,25 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint .",
+    "format": "prettier \"**/*.{ts,tsx,js,jsx,css,md}\" --write",
+    "fix-password": "node scripts/fix-user-password.mjs",
+    "create-admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "axios": "^1.13.6",
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^12.34.3",
     "next": "16.1.6",
+    "next-auth": "^4.24.13",
+    "prisma": "^6.19.0",
+    "razorpay": "^2.9.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "recharts": "^3.7.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -20,6 +33,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "prettier": "^3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
