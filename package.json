@@ -11,6 +11,9 @@
     "fix-password": "node scripts/fix-user-password.mjs",
     "create-admin": "node scripts/create-admin.mjs"
   },
+  "prisma": {
+    "seed": "node prisma/seed.cjs"
+  },
   "dependencies": {
     "@prisma/client": "^6.19.0",
     "axios": "^1.13.6",
@@ -35,6 +38,7 @@
     "eslint-config-next": "16.1.6",
     "prettier": "^3",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
