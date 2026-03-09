@@ -26,43 +26,43 @@ export async function GET() {
       );
     }
 
-    const phoneCounts = new Map<string, number>();
+    const userOrderCounts = new Map<string, number>();
     const hourCounts = new Map<number, number>();
-    const pgCounts = new Map<string, { orders: number; revenue: number }>();
+    const addressCounts = new Map<string, { orders: number; revenue: number }>();
 
     let totalRevenue = 0;
 
     for (const order of orders) {
-      // Repeat customers (by phone)
-      const phoneKey = order.phone;
-      phoneCounts.set(phoneKey, (phoneCounts.get(phoneKey) ?? 0) + 1);
+      // Repeat customers (by userId)
+      const userKey = order.userId;
+      userOrderCounts.set(userKey, (userOrderCounts.get(userKey) ?? 0) + 1);
 
       // Peak order time (hour of day)
       const createdAt = new Date(order.createdAt);
       const hour = createdAt.getHours();
       hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
 
-      // Top PGs (by order count and revenue)
-      const pgKey = order.pgName.trim() || "Unknown";
-      const existingPg = pgCounts.get(pgKey) ?? { orders: 0, revenue: 0 };
-      pgCounts.set(pgKey, {
-        orders: existingPg.orders + 1,
-        revenue: existingPg.revenue + order.totalAmount,
+      // Top locations (by address: order count and revenue)
+      const addressKey = order.address.trim() || "Unknown";
+      const existing = addressCounts.get(addressKey) ?? { orders: 0, revenue: 0 };
+      addressCounts.set(addressKey, {
+        orders: existing.orders + 1,
+        revenue: existing.revenue + order.totalAmount,
       });
 
       totalRevenue += order.totalAmount;
     }
 
     const totalOrders = orders.length;
-    const customersWithMoreThanOneOrder = Array.from(phoneCounts.values()).filter(
+    const customersWithMoreThanOneOrder = Array.from(userOrderCounts.values()).filter(
       (count) => count > 1,
     ).length;
-    const totalUniquePhones = phoneCounts.size;
+    const totalUniqueUsers = userOrderCounts.size;
 
     const repeatCustomerPercent =
-      totalUniquePhones === 0
+      totalUniqueUsers === 0
         ? 0
-        : Math.round((customersWithMoreThanOneOrder / totalUniquePhones) * 100);
+        : Math.round((customersWithMoreThanOneOrder / totalUniqueUsers) * 100);
 
     const averageOrderValue = totalOrders === 0 ? 0 : Math.round(totalRevenue / totalOrders);
 
@@ -72,7 +72,7 @@ export async function GET() {
         : null;
     const peakHour = peakHourEntry ? peakHourEntry[0] : null;
 
-    const topPgs = Array.from(pgCounts.entries())
+    const topPgs = Array.from(addressCounts.entries())
       .sort((a, b) => b[1].orders - a[1].orders)
       .slice(0, 5)
       .map(([name, stats]) => ({

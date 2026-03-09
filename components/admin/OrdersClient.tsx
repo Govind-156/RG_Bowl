@@ -49,10 +49,11 @@ let isPlayingChime = false;
 
 async function playNewOrderSound() {
   try {
-    type WindowWithWebkitAudioContext = Window & {
+    type WindowWithAudioContext = Window & {
+      AudioContext?: typeof AudioContext;
       webkitAudioContext?: typeof AudioContext;
     };
-    const w = window as WindowWithWebkitAudioContext;
+    const w = window as WindowWithAudioContext;
     const AudioCtx = w.AudioContext ?? w.webkitAudioContext;
     if (!AudioCtx || isPlayingChime) return;
 

@@ -141,7 +141,7 @@ export default function AnalyticsClient() {
                     borderRadius: "8px",
                   }}
                   labelStyle={{ color: "#a1a1aa" }}
-                  formatter={(value: number) => [`₹${value}`, "Revenue"]}
+                  formatter={(value: number | undefined) => [`₹${value ?? 0}`, "Revenue"]}
                   labelFormatter={(label) => label}
                 />
                 <Bar

@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const ref = searchParams.get("ref");
@@ -137,5 +137,17 @@ export default function SignupPage() {
         </p>
       </section>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen items-center justify-center bg-black px-6 py-16 text-zinc-50">
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-zinc-800" />
+      </main>
+    }>
+      <SignupForm />
+    </Suspense>
   );
 }

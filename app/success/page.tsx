@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -48,7 +49,7 @@ function shortOrderId(orderId: string | null): string {
   return orderId.slice(-8).toUpperCase();
 }
 
-export default function SuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const rawSummary = searchParams.get("summary");
   const summary = parseSummaryParam(rawSummary);
@@ -140,5 +141,17 @@ export default function SuccessPage() {
         )}
       </motion.section>
     </main>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 text-zinc-50">
+        <div className="h-8 w-64 animate-pulse rounded-lg bg-zinc-800" />
+      </main>
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }
