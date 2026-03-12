@@ -10,7 +10,8 @@ const createCouponSchema = z.object({
   minOrderValue: z.number().int().min(0).optional(),
   firstOrderOnly: z.boolean().optional(),
   maxDiscount: z.number().int().min(0).optional(),
-  validTo: z.string().datetime(),
+  // Accept any string (including datetime-local like 2026-03-13T09:28) or omit and default server-side.
+  validTo: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
