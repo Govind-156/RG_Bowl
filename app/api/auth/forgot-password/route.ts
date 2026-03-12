@@ -61,7 +61,7 @@ export async function POST(request: Request) {
           await resend.emails.send({
             from: fromEmail,
             to: email,
-            reply_to: supportEmail,
+            replyTo: supportEmail,
             subject: "Reset your RG Bowl password",
             html: `
               <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.5;">
