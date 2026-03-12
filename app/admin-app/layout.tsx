@@ -60,6 +60,12 @@ export default async function AdminAppLayout({ children }: { children: ReactNode
               >
                 Revenue
               </Link>
+              <Link
+                href="/admin-app/coupons"
+                className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-900/70"
+              >
+                Coupons
+              </Link>
             </nav>
           </div>
         </aside>

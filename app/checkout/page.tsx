@@ -8,8 +8,8 @@ import { z } from "zod";
 import { useCartStore } from "@/lib/cart-store";
 import {
   DELIVERY_CHARGE,
-  CLASSIC_MAGGI_PRICE,
   REFERRAL_FIRST_ORDER_DISCOUNT,
+  DELIVERY_ALLOWED_AREA_KEYWORDS,
 } from "@/lib/constants";
 
 const checkoutSchema = z.object({
@@ -22,6 +22,26 @@ const checkoutSchema = z.object({
 });
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
+
+function calculateReferralMaggiDiscount(items: { name: string; price: number; quantity: number }[]): number {
+  const maggiItems = items.filter((item) =>
+    item.name.toLowerCase().includes("maggi"),
+  );
+  if (maggiItems.length === 0) return 0;
+  const highestPrice = maggiItems.reduce(
+    (max, item) => (item.price > max ? item.price : max),
+    0,
+  );
+  // 50% off the highest-priced Maggi (one bowl).
+  return Math.round(highestPrice / 2);
+}
+
+function isAddressInAllowedArea(address: string): boolean {
+  const lower = address.toLowerCase();
+  return DELIVERY_ALLOWED_AREA_KEYWORDS.some((keyword) =>
+    lower.includes(keyword.toLowerCase()),
+  );
+}
 
 /** Reverse geocode lat/lng to address using OpenStreetMap Nominatim. */
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
@@ -62,6 +82,15 @@ export default function CheckoutPage() {
     firstOrder25Off: boolean;
     freeClassicMaggiAvailable: boolean;
   } | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    couponId: string;
+    code: string;
+    discount: number;
+    type: string;
+  } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
   const [form, setForm] = useState<CheckoutForm>({
     name: "",
     phone: "",
@@ -118,11 +147,57 @@ export default function CheckoutPage() {
       ? Math.round(subtotal * REFERRAL_FIRST_ORDER_DISCOUNT)
       : 0;
   const freeClassicDiscount =
-    referralStatus?.freeClassicMaggiAvailable ?? false ? CLASSIC_MAGGI_PRICE : 0;
+    referralStatus?.freeClassicMaggiAvailable ?? false
+      ? calculateReferralMaggiDiscount(items)
+      : 0;
   const totalDiscount = referralDiscount + freeClassicDiscount;
   const discountedSubtotal = Math.max(0, subtotal - totalDiscount);
-  const totalPrice = discountedSubtotal + DELIVERY_CHARGE;
+  const couponDiscount = appliedCoupon?.discount ?? 0;
+  const deliveryAmount =
+    appliedCoupon?.type === "FREE_DELIVERY" ? 0 : DELIVERY_CHARGE;
+  const totalPrice = Math.max(0, discountedSubtotal - couponDiscount + deliveryAmount);
   const usedFreeClassicMaggi = freeClassicDiscount > 0;
+
+  const handleApplyCoupon = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
+    setCouponError(null);
+    setCouponLoading(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, subtotal }),
+      });
+      const data = (await res.json()) as {
+        valid?: boolean;
+        message?: string;
+        discount?: number;
+        couponId?: string;
+        type?: string;
+      };
+      if (data.valid && data.couponId != null && typeof data.discount === "number") {
+        setAppliedCoupon({
+          couponId: data.couponId,
+          code: code.toUpperCase(),
+          discount: data.discount,
+          type: data.type ?? "PERCENT_DISCOUNT",
+        });
+        setCouponCode("");
+      } else {
+        setCouponError(data.message ?? "Invalid or expired coupon.");
+      }
+    } catch {
+      setCouponError("Could not validate coupon. Try again.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+  };
 
   const validation = checkoutSchema.safeParse(form);
   const fieldErrors = !validation.success
@@ -191,6 +266,12 @@ export default function CheckoutPage() {
         }
       }
 
+      // Enforce delivery area restriction (BTM only, configurable via DELIVERY_ALLOWED_AREA_KEYWORDS).
+      if (!isAddressInAllowedArea(form.address)) {
+        setError("We currently deliver only in BTM.");
+        return;
+      }
+
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         setError("Payment gateway could not be loaded. Check your connection and try again.");
@@ -242,26 +323,28 @@ export default function CheckoutPage() {
             const verifyRes = await fetch("/api/payments/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                order: {
-                  userId: (session?.user as { id?: string })?.id,
-                  address: fullAddress,
-                  latitude: latitude ?? undefined,
-                  longitude: longitude ?? undefined,
-                  items: items.map((i) => ({
-                    id: i.id,
-                    name: i.name,
-                    quantity: i.quantity,
-                    price: i.price,
-                  })),
-                  totalAmount: totalPrice,
-                  referralDiscountAmount: totalDiscount,
-                  usedFreeClassicMaggi,
-                },
-              }),
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  order: {
+                    userId: (session?.user as { id?: string })?.id,
+                    address: fullAddress,
+                    latitude: latitude ?? undefined,
+                    longitude: longitude ?? undefined,
+                    items: items.map((i) => ({
+                      id: i.id,
+                      name: i.name,
+                      quantity: i.quantity,
+                      price: i.price,
+                    })),
+                    totalAmount: totalPrice,
+                    referralDiscountAmount: totalDiscount,
+                    usedFreeClassicMaggi,
+                    couponId: appliedCoupon?.couponId ?? null,
+                    couponDiscountAmount: couponDiscount,
+                  },
+                }),
             });
 
             if (!verifyRes.ok) {
@@ -359,13 +442,56 @@ export default function CheckoutPage() {
             )}
             {freeClassicDiscount > 0 && (
               <div className="flex justify-between text-emerald-400">
-                <span>Free Classic Maggi (referral)</span>
+                <span>50% off highest Maggi (referral)</span>
                 <span>-₹{freeClassicDiscount}</span>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2 border-t border-zinc-800 pt-3">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  setCouponError(null);
+                }}
+                placeholder="Coupon code"
+                className="flex-1 min-w-[120px] rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none"
+                disabled={!!appliedCoupon}
+              />
+              {appliedCoupon ? (
+                <div className="flex flex-1 min-w-[200px] items-center justify-between gap-2 rounded-lg border border-emerald-800 bg-emerald-950/40 px-3 py-2 text-sm">
+                  <span className="text-emerald-400">{appliedCoupon.code} applied</span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-xs text-zinc-400 underline hover:text-zinc-300"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || !couponCode.trim()}
+                  className="rounded-lg border border-amber-400/60 bg-amber-400/10 px-4 py-2 text-sm font-medium text-amber-300 transition hover:bg-amber-400/20 disabled:opacity-50"
+                >
+                  {couponLoading ? "Checking…" : "Apply"}
+                </button>
+              )}
+            </div>
+            {couponError && (
+              <p className="text-xs text-red-400">{couponError}</p>
+            )}
+            {appliedCoupon && (
+              <div className="flex justify-between text-emerald-400">
+                <span>Coupon ({appliedCoupon.code})</span>
+                <span>-₹{appliedCoupon.discount}</span>
               </div>
             )}
             <div className="flex justify-between text-zinc-400">
               <span>Delivery charge</span>
-              <span>₹{DELIVERY_CHARGE}</span>
+              <span>{deliveryAmount === 0 ? "Free" : `₹${deliveryAmount}`}</span>
             </div>
             <div className="flex justify-between border-t border-zinc-800 pt-2 text-base font-semibold text-zinc-50">
               <span>Total</span>

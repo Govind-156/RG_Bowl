@@ -18,6 +18,12 @@ type OrderItem = {
   quantity: number;
   price: number;
 };
+type DeliveryPartner = {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+};
 
 type Order = {
   id: string;
@@ -29,6 +35,11 @@ type Order = {
   createdAt: string;
   paymentId: string;
   status: OrderStatus;
+  deliveryPartner?: {
+    id: string;
+    name: string;
+    phone?: string | null;
+  } | null;
 };
 
 const STATUS_BADGE_CLASS: Record<OrderStatus, string> = {
@@ -110,6 +121,7 @@ export default function OrdersClient() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [deliveryPartners, setDeliveryPartners] = useState<DeliveryPartner[]>([]);
 
   const fetchOrders = async (isInitial = false) => {
     try {
@@ -145,6 +157,45 @@ export default function OrdersClient() {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const loadPartners = async () => {
+      try {
+        const res = await fetch("/api/admin/delivery-partners", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as DeliveryPartner[];
+        setDeliveryPartners(data);
+      } catch {
+        // non-fatal
+      }
+    };
+    void loadPartners();
+  }, []);
+
+  const handleAssignDeliveryPartner = async (id: string, deliveryPartnerId: string) => {
+    try {
+      setUpdatingId(id);
+      setError(null);
+
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryPartnerId }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+        throw new Error(data?.error || data?.message || "Failed to assign delivery partner");
+      }
+
+      const updated = (await res.json()) as Order;
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    } catch (err) {
+      setError((err as Error).message || "Unable to assign delivery partner.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {
     try {
@@ -230,6 +281,7 @@ export default function OrdersClient() {
                         .map((i) => `${i.name} × ${i.quantity}`)
                         .join(", ")
                     : "No items";
+                const assignedId = order.deliveryPartner?.id ?? "";
 
                 return (
                   <div
@@ -268,6 +320,32 @@ export default function OrdersClient() {
                       <p className="sm:col-span-2">
                         <span className="text-zinc-500">Items:</span> {itemsSummary}
                       </p>
+                      {deliveryPartners.length > 0 && (
+                        <div className="sm:col-span-2 mt-1 flex flex-wrap items-center gap-2">
+                          <span className="text-zinc-500">Delivery partner:</span>
+                          <select
+                            value={assignedId}
+                            onChange={(e) =>
+                              e.target.value &&
+                              handleAssignDeliveryPartner(order.id, e.target.value)
+                            }
+                            className="rounded-full border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-100"
+                            disabled={updatingId === order.id}
+                          >
+                            <option value="">Unassigned</option>
+                            {deliveryPartners.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name || p.email}
+                              </option>
+                            ))}
+                          </select>
+                          {order.deliveryPartner?.phone && (
+                            <span className="text-[10px] text-zinc-500">
+                              ({order.deliveryPartner.phone})
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-2">

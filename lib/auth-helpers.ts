@@ -14,3 +14,18 @@ export async function getCurrentAdmin() {
   };
 }
 
+export async function getCurrentDeliveryPartner() {
+  const session = await auth();
+  const user = session?.user as { id?: string; email?: string; role?: string } | undefined;
+
+  if (!user || user.role !== "delivery" || !user.id) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    role: user.role,
+  };
+}
+

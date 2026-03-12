@@ -12,6 +12,10 @@ export default function ContactPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [type, setType] = useState<"GENERAL" | "COMPLAINT">("GENERAL");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -32,12 +36,14 @@ export default function ContactPage() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim() || undefined,
-          email: email.trim(),
-          message: message.trim(),
-          orderId: orderId.trim() || undefined,
-        }),
+          body: JSON.stringify({
+            name: name.trim() || undefined,
+            email: email.trim(),
+            message: message.trim(),
+            orderId: orderId.trim() || undefined,
+            type,
+            imageUrl: imageUrl || undefined,
+          }),
       });
       const data = (await res.json()) as { error?: string; message?: string };
 
@@ -49,6 +55,9 @@ export default function ContactPage() {
       setSuccess(true);
       setMessage("");
       setOrderId("");
+      setType("GENERAL");
+      setImageUrl(null);
+      setUploadError(null);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -83,7 +92,40 @@ export default function ContactPage() {
             className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-950/80 p-6"
             onSubmit={handleSubmit}
           >
-            <div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="contact-type-general"
+                  className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500"
+                >
+                  Reason
+                </label>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setType("GENERAL")}
+                    className={`rounded-full border px-3 py-1.5 ${
+                      type === "GENERAL"
+                        ? "border-amber-400 bg-amber-400/10 text-amber-300"
+                        : "border-zinc-700 bg-zinc-900 text-zinc-300"
+                    }`}
+                  >
+                    General question / feedback
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setType("COMPLAINT")}
+                    className={`rounded-full border px-3 py-1.5 ${
+                      type === "COMPLAINT"
+                        ? "border-red-400 bg-red-500/10 text-red-300"
+                        : "border-zinc-700 bg-zinc-900 text-zinc-300"
+                    }`}
+                  >
+                    Order complaint / damage
+                  </button>
+                </div>
+              </div>
+
               <label
                 htmlFor="contact-name"
                 className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500"
@@ -117,6 +159,72 @@ export default function ContactPage() {
                 required
               />
             </div>
+
+            {type === "COMPLAINT" && (
+              <div className="space-y-2 rounded-lg border border-red-500/30 bg-red-950/30 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-red-300">
+                  Complaint details
+                </p>
+                <p className="text-xs text-red-100/80">
+                  If you received a damaged order, upload a clear photo of the item or packaging.
+                  This helps us resolve it faster. The photo is optional but recommended.
+                </p>
+                <div className="flex flex-col gap-2 text-xs">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) {
+                        return;
+                      }
+                      setUploadError(null);
+                      setUploading(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const res = await fetch("/api/contact/upload-image", {
+                          method: "POST",
+                          body: formData,
+                        });
+                        const data = (await res.json()) as {
+                          error?: string;
+                          url?: string;
+                        };
+                        if (!res.ok || !data.url) {
+                          setUploadError(
+                            data.error ||
+                              "Could not upload image. Please try again.",
+                          );
+                          setImageUrl(null);
+                        } else {
+                          setImageUrl(data.url);
+                        }
+                      } catch {
+                        setUploadError(
+                          "Could not upload image. Please try again.",
+                        );
+                        setImageUrl(null);
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                    className="block w-full text-xs text-zinc-300 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-800 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-100 hover:file:bg-zinc-700"
+                  />
+                  {uploading && (
+                    <p className="text-xs text-zinc-300">Uploading image…</p>
+                  )}
+                  {imageUrl && !uploading && (
+                    <p className="text-xs text-emerald-400">
+                      Image attached. We&apos;ll review it with your complaint.
+                    </p>
+                  )}
+                  {uploadError && (
+                    <p className="text-xs text-red-400">{uploadError}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <label

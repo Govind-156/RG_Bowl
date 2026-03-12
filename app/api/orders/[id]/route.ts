@@ -7,15 +7,22 @@ const idParamSchema = z.object({
   id: z.string().min(1, "Invalid id"),
 });
 
-const updateStatusSchema = z.object({
-  status: z.enum([
-    "PLACED",
-    "PREPARING",
-    "OUT_FOR_DELIVERY",
-    "DELIVERED",
-    "CANCELLED",
-  ]),
-});
+const updateOrderSchema = z
+  .object({
+    status: z
+      .enum([
+        "PLACED",
+        "PREPARING",
+        "OUT_FOR_DELIVERY",
+        "DELIVERED",
+        "CANCELLED",
+      ])
+      .optional(),
+    deliveryPartnerId: z.string().min(1).optional(),
+  })
+  .refine((body) => body.status || body.deliveryPartnerId, {
+    message: "At least one field (status or deliveryPartnerId) must be provided",
+  });
 
 export async function PATCH(
   request: Request,
@@ -34,7 +41,7 @@ export async function PATCH(
     }
 
     const json = await request.json();
-    const bodyParse = updateStatusSchema.safeParse(json);
+    const bodyParse = updateOrderSchema.safeParse(json);
 
     if (!bodyParse.success) {
       return NextResponse.json(
@@ -47,9 +54,15 @@ export async function PATCH(
 
     const updated = await prisma.order.update({
       where: { id },
-      data: { status: bodyParse.data.status },
+      data: {
+        ...(bodyParse.data.status ? { status: bodyParse.data.status } : {}),
+        ...(bodyParse.data.deliveryPartnerId
+          ? { deliveryPartnerId: bodyParse.data.deliveryPartnerId }
+          : {}),
+      },
       include: {
         user: { select: { name: true, phone: true } },
+        deliveryPartner: { select: { id: true, name: true, phone: true } },
         items: {
           include: {
             dish: { select: { name: true } },
@@ -73,6 +86,13 @@ export async function PATCH(
         quantity: i.quantity,
         price: i.price,
       })),
+      deliveryPartner: updated.deliveryPartner
+        ? {
+            id: updated.deliveryPartner.id,
+            name: updated.deliveryPartner.name,
+            phone: updated.deliveryPartner.phone,
+          }
+        : null,
     };
 
     return NextResponse.json(payload, { status: 200 });

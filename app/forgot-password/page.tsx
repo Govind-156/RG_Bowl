@@ -47,8 +47,13 @@ export default function ForgotPasswordPage() {
         </p>
 
         {submitted ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
-            If an account exists with this email, we&apos;ve sent a reset link.
+          <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+            <p>
+              If an account exists with this email, we&apos;ve sent a reset link.
+            </p>
+            <p className="text-xs text-amber-100/80">
+              Please check your inbox and spam folder for an email from RG Bowl.
+            </p>
           </div>
         ) : (
           <form className="space-y-4" onSubmit={handleSubmit}>

@@ -35,6 +35,14 @@ export default function Navbar() {
                   Admin
                 </Link>
               )}
+              {role === "delivery" && (
+                <Link
+                  href="/delivery"
+                  className="text-amber-300 hover:text-amber-200"
+                >
+                  Delivery
+                </Link>
+              )}
               <Link
                 href="/profile#orders"
                 className="text-zinc-300 hover:text-zinc-50"

@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { sendOrderWhatsAppNotification } from "@/lib/whatsapp";
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -20,6 +21,8 @@ const orderPayloadSchema = z.object({
   totalAmount: z.number().int().positive(),
   referralDiscountAmount: z.number().int().nonnegative().optional(),
   usedFreeClassicMaggi: z.boolean().optional(),
+  couponId: z.string().optional().nullable(),
+  couponDiscountAmount: z.number().int().nonnegative().optional(),
 });
 
 const verifySchema = z.object({
@@ -84,10 +87,12 @@ export async function POST(request: Request) {
 
     const referralDiscountAmount = order.referralDiscountAmount ?? 0;
     const usedFreeClassicMaggi = order.usedFreeClassicMaggi ?? false;
+    const couponId = order.couponId ?? undefined;
+    const couponDiscountAmount = order.couponDiscountAmount ?? 0;
 
     // Create Order and OrderItems in a single transaction so both succeed or both roll back.
     const createdOrder = await prisma.$transaction(async (tx) => {
-      // 1. Create Order record with address, location, status PLACED, and referral fields.
+      // 1. Create Order record with address, location, status PLACED, referral and coupon fields.
       const newOrder = await tx.order.create({
         data: {
           userId: order.userId,
@@ -99,6 +104,8 @@ export async function POST(request: Request) {
           longitude: order.longitude ?? undefined,
           referralDiscountAmount,
           usedFreeClassicMaggi,
+          couponId: couponId || undefined,
+          couponDiscountAmount,
         },
       });
 
@@ -150,6 +157,45 @@ export async function POST(request: Request) {
 
       return newOrder;
     });
+
+    // Fire-and-forget WhatsApp notification. Do not block response on failures.
+    try {
+      const [user, orderWithItems] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: order.userId },
+          select: { name: true, phone: true },
+        }),
+        prisma.order.findUnique({
+          where: { id: createdOrder.id },
+          include: {
+            items: {
+              include: {
+                dish: { select: { name: true } },
+              },
+            },
+          },
+        }),
+      ]);
+
+      if (orderWithItems) {
+        const itemsForWhatsApp =
+          orderWithItems.items.map((item) => ({
+            name: item.dish?.name ?? "Item",
+            quantity: item.quantity,
+            price: item.price,
+          })) ?? [];
+
+        void sendOrderWhatsAppNotification({
+          order: createdOrder,
+          items: itemsForWhatsApp,
+          customerName: user?.name ?? "",
+          customerPhone: user?.phone ?? "",
+          address: createdOrder.address,
+        });
+      }
+    } catch (err) {
+      console.error("Error triggering WhatsApp order notification", err);
+    }
 
     return NextResponse.json({ success: true, order: createdOrder }, { status: 201 });
   } catch (error) {

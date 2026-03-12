@@ -1,22 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentAdmin } from "@/lib/auth-helpers";
+import { getCurrentDeliveryPartner } from "@/lib/auth-helpers";
 
 export async function GET() {
   try {
-    const admin = await getCurrentAdmin();
-    if (!admin) {
+    const partner = await getCurrentDeliveryPartner();
+    if (!partner) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
     const orders = await prisma.order.findMany({
+      where: {
+        deliveryPartnerId: partner.id,
+        status: "OUT_FOR_DELIVERY",
+      },
       orderBy: { createdAt: "desc" },
-      take: 100,
       include: {
         user: {
           select: { name: true, phone: true },
-        },
-        deliveryPartner: {
-          select: { id: true, name: true, phone: true },
         },
         items: {
           include: {
@@ -37,13 +38,6 @@ export async function GET() {
       paymentId: o.paymentId,
       customerName: o.user.name,
       phone: o.user.phone,
-      deliveryPartner: o.deliveryPartner
-        ? {
-            id: o.deliveryPartner.id,
-            name: o.deliveryPartner.name,
-            phone: o.deliveryPartner.phone,
-          }
-        : null,
       items: o.items.map((i) => ({
         id: i.id,
         name: i.dish.name,
@@ -54,8 +48,11 @@ export async function GET() {
 
     return NextResponse.json(payload, { status: 200 });
   } catch (error) {
-    console.error("Error fetching orders", error);
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
+    console.error("Error fetching delivery partner orders", error);
+    return NextResponse.json(
+      { error: "Failed to fetch delivery orders" },
+      { status: 500 },
+    );
   }
 }
 

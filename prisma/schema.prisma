@@ -21,6 +21,7 @@ model User {
   referredUsers           User[]                @relation("UserReferredBy")
   freeClassicMaggiAvailable Boolean             @default(false)
   orders                  Order[]
+  deliveryOrders          Order[]               @relation("DeliveryPartnerOrders")
   passwordResetTokens     PasswordResetToken[]
 
   @@map("users")
@@ -39,6 +40,7 @@ model PasswordResetToken {
 enum UserRole {
   CUSTOMER
   ADMIN
+  DELIVERY
 }
 
 model Dish {
@@ -55,6 +57,29 @@ model Dish {
   @@map("dishes")
 }
 
+model Coupon {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  type           CouponType
+  value          Int
+  minOrderValue  Int?     @default(0)
+  firstOrderOnly Boolean  @default(false)
+  maxDiscount    Int?
+  validFrom      DateTime @default(now())
+  validTo        DateTime
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  orders         Order[]
+
+  @@map("coupons")
+}
+
+enum CouponType {
+  PERCENT_DISCOUNT
+  FREE_DELIVERY
+  FIXED_OFF
+}
+
 model Order {
   id                    String      @id @default(cuid())
   userId                String
@@ -66,8 +91,13 @@ model Order {
   address               String   @db.Text
   referralDiscountAmount Int     @default(0)
   usedFreeClassicMaggi  Boolean    @default(false)
+  couponId              String?
+  couponDiscountAmount Int        @default(0)
   createdAt             DateTime @default(now())
   user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryPartnerId     String?
+  deliveryPartner       User?       @relation("DeliveryPartnerOrders", fields: [deliveryPartnerId], references: [id])
+  coupon                Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items                 OrderItem[]
 
   @@map("orders")
@@ -107,7 +137,14 @@ model ContactSubmission {
   email     String
   message   String   @db.Text
   orderId   String?
+  type      ContactType @default(GENERAL)
+  imageUrl  String?
   createdAt DateTime @default(now())
 
   @@map("contact_submissions")
+}
+
+enum ContactType {
+  GENERAL
+  COMPLAINT
 }

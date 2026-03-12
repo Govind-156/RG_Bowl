@@ -22,7 +22,14 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: { name?: string; email?: string; message?: string; orderId?: string };
+    let body: {
+      name?: string;
+      email?: string;
+      message?: string;
+      orderId?: string;
+      type?: "GENERAL" | "COMPLAINT" | string;
+      imageUrl?: string;
+    };
     try {
       body = await request.json();
     } catch {
@@ -48,6 +55,13 @@ export async function POST(request: Request) {
 
     const name = typeof body.name === "string" ? body.name.trim() || null : null;
     const orderId = typeof body.orderId === "string" ? body.orderId.trim() || null : null;
+    const rawType = typeof body.type === "string" ? body.type.toUpperCase() : "GENERAL";
+    const type: "GENERAL" | "COMPLAINT" =
+      rawType === "COMPLAINT" ? "COMPLAINT" : "GENERAL";
+    const imageUrl =
+      typeof body.imageUrl === "string" && body.imageUrl.trim()
+        ? body.imageUrl.trim()
+        : null;
 
     await prisma.contactSubmission.create({
       data: {
@@ -55,6 +69,8 @@ export async function POST(request: Request) {
         email,
         message,
         orderId,
+        type,
+        imageUrl,
       },
     });
 

@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { JWT } from "next-auth/jwt";
 
-type AppRole = "admin" | "customer";
+type AppRole = "admin" | "customer" | "delivery";
 type AppUser = User & { id: string; phone: string; role: AppRole };
 type AppJWT = JWT & { id?: string; role?: AppRole; phone?: string };
 type AppSessionUser = NonNullable<Session["user"]> & { id?: string; role?: AppRole; phone?: string };
@@ -42,12 +42,16 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        let role: AppRole = "customer";
+        if (user.role === "ADMIN") role = "admin";
+        else if (user.role === "DELIVERY") role = "delivery";
+
         const appUser: AppUser = {
           id: user.id,
           email: user.email,
           name: user.name,
           phone: user.phone,
-          role: user.role === "ADMIN" ? "admin" : "customer",
+          role,
         };
         return appUser;
       },
