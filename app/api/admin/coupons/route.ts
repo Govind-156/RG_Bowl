@@ -80,6 +80,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const validToDate = data.validTo
+      ? new Date(data.validTo)
+      : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
     const coupon = await prisma.coupon.create({
       data: {
         code,
@@ -88,7 +92,7 @@ export async function POST(request: Request) {
         minOrderValue: data.minOrderValue ?? 0,
         firstOrderOnly: data.firstOrderOnly ?? false,
         maxDiscount: data.maxDiscount ?? undefined,
-        validTo: new Date(data.validTo),
+        validTo: validToDate,
         isActive: data.isActive ?? true,
       },
     });
