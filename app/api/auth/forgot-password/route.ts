@@ -53,17 +53,20 @@ export async function POST(request: Request) {
       const resendApiKey = process.env.RESEND_API_KEY;
       const fromEmail = process.env.EMAIL_FROM;
 
-      if (resendApiKey && fromEmail) {
-        try {
-          const resend = new Resend(resendApiKey);
-          const supportEmail = process.env.SUPPORT_EMAIL || fromEmail;
+      if (!resendApiKey || !fromEmail) {
+        console.warn(
+          "[Forgot password] Resend not configured: RESEND_API_KEY or EMAIL_FROM missing. Set them in Vercel env vars."
+        );
+      } else {
+        const resend = new Resend(resendApiKey);
+        const supportEmail = process.env.SUPPORT_EMAIL || fromEmail;
 
-          await resend.emails.send({
-            from: fromEmail,
-            to: email,
-            replyTo: supportEmail,
-            subject: "Reset your RG Bowl password",
-            html: `
+        const { data, error } = await resend.emails.send({
+          from: fromEmail,
+          to: email,
+          replyTo: supportEmail,
+          subject: "Reset your RG Bowl password",
+          html: `
               <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.5;">
                 <h2 style="margin-bottom: 12px;">Reset your RG Bowl password</h2>
                 <p style="margin: 0 0 12px 0;">We received a request to reset the password for your RG Bowl account.</p>
@@ -84,9 +87,12 @@ export async function POST(request: Request) {
                 </p>
               </div>
             `,
-          });
-        } catch (err) {
-          console.error("Error sending reset email via Resend", err);
+        });
+
+        if (error) {
+          console.error("[Forgot password] Resend error:", JSON.stringify(error));
+        } else if (data?.id) {
+          console.log("[Forgot password] Email sent, id:", data.id);
         }
       }
     }
