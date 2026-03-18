@@ -43,17 +43,26 @@ export default function ForgotPasswordPage() {
           Forgot password
         </h1>
         <p className="mb-6 text-sm text-zinc-400">
-          Enter your email and we&apos;ll send you a link to reset your password.
+          Enter your email and we&apos;ll send you a 6-digit OTP to reset your password.
         </p>
 
         {submitted ? (
           <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
             <p>
-              If an account exists with this email, we&apos;ve sent a reset link.
+              If an account exists with this email, we&apos;ve sent an OTP.
             </p>
             <p className="text-xs text-amber-100/80">
               Please check your inbox and spam folder for an email from RG Bowl.
             </p>
+            <p className="text-xs text-amber-100/80">
+              Then continue on the reset page to enter OTP and set a new password.
+            </p>
+            <Link
+              href="/reset-password"
+              className="inline-block text-sm font-medium text-amber-400 hover:text-amber-300"
+            >
+              Go to reset password →
+            </Link>
           </div>
         ) : (
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -80,7 +89,7 @@ export default function ForgotPasswordPage() {
               disabled={isSubmitting}
               className="flex w-full items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-black shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
             >
-              {isSubmitting ? "Sending…" : "Send reset link"}
+              {isSubmitting ? "Sending…" : "Send OTP"}
             </button>
           </form>
         )}
