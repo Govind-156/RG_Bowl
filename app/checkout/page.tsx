@@ -91,12 +91,29 @@ export default function CheckoutPage() {
   } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<
+    {
+      id: string;
+      code: string;
+      type: string;
+      value: number;
+      minOrderValue: number | null;
+      firstOrderOnly: boolean;
+      maxDiscount: number | null;
+      eligible: boolean;
+      reason: string | null;
+    }[]
+  >([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
   const [form, setForm] = useState<CheckoutForm>({
     name: "",
     phone: "",
     address: "",
     roomNumber: "",
   });
+  const [preferredLanguage, setPreferredLanguage] = useState<
+    "KANNADA" | "HINDI" | "ENGLISH" | "TELUGU"
+  >("ENGLISH");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -158,8 +175,46 @@ export default function CheckoutPage() {
   const totalPrice = Math.max(0, discountedSubtotal - couponDiscount + deliveryAmount);
   const usedFreeClassicMaggi = freeClassicDiscount > 0;
 
-  const handleApplyCoupon = async () => {
-    const code = couponCode.trim();
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    let cancelled = false;
+    const loadCoupons = async () => {
+      try {
+        setCouponsLoading(true);
+        const res = await fetch(`/api/coupons?subtotal=${discountedSubtotal}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as unknown;
+        if (!cancelled && Array.isArray(data)) {
+          setAvailableCoupons(
+            data as {
+              id: string;
+              code: string;
+              type: string;
+              value: number;
+              minOrderValue: number | null;
+              firstOrderOnly: boolean;
+              maxDiscount: number | null;
+              eligible: boolean;
+              reason: string | null;
+            }[],
+          );
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setCouponsLoading(false);
+      }
+    };
+    void loadCoupons();
+    return () => {
+      cancelled = true;
+    };
+  }, [status, discountedSubtotal]);
+
+  const handleApplyCoupon = async (codeOverride?: string) => {
+    const code = (codeOverride ?? couponCode).trim();
     if (!code) return;
     setCouponError(null);
     setCouponLoading(true);
@@ -167,7 +222,8 @@ export default function CheckoutPage() {
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, subtotal }),
+        // Coupon rules apply after referral discounts.
+        body: JSON.stringify({ code, subtotal: discountedSubtotal }),
       });
       const data = (await res.json()) as {
         valid?: boolean;
@@ -343,6 +399,7 @@ export default function CheckoutPage() {
                     usedFreeClassicMaggi,
                     couponId: appliedCoupon?.couponId ?? null,
                     couponDiscountAmount: couponDiscount,
+                    preferredLanguage,
                   },
                 }),
             });
@@ -472,7 +529,7 @@ export default function CheckoutPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={handleApplyCoupon}
+                  onClick={() => void handleApplyCoupon()}
                   disabled={couponLoading || !couponCode.trim()}
                   className="rounded-lg border border-amber-400/60 bg-amber-400/10 px-4 py-2 text-sm font-medium text-amber-300 transition hover:bg-amber-400/20 disabled:opacity-50"
                 >
@@ -489,6 +546,57 @@ export default function CheckoutPage() {
                 <span>-₹{appliedCoupon.discount}</span>
               </div>
             )}
+            <div className="mt-2 border-t border-zinc-800 pt-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Available coupons
+                </span>
+                {couponsLoading && (
+                  <span className="text-[11px] text-zinc-500">Loading…</span>
+                )}
+              </div>
+              {availableCoupons.length === 0 ? (
+                <p className="text-xs text-zinc-500">
+                  No active coupons right now.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {availableCoupons.map((c) => {
+                    const disabled = !!appliedCoupon || !c.eligible || couponLoading;
+                    const benefit =
+                      c.type === "FREE_DELIVERY"
+                        ? "Free delivery"
+                        : c.type === "PERCENT_DISCOUNT"
+                          ? `${c.value}% off${c.firstOrderOnly ? " (first order)" : ""}`
+                          : `₹${c.value} off${(c.minOrderValue ?? 0) > 0 ? ` on ₹${c.minOrderValue}+` : ""}`;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => {
+                          void handleApplyCoupon(c.code);
+                        }}
+                        className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                          c.eligible
+                            ? "border-amber-400/40 bg-amber-400/10 text-amber-200 hover:bg-amber-400/15"
+                            : "border-zinc-800 bg-zinc-900/30 text-zinc-500"
+                        } disabled:cursor-not-allowed disabled:opacity-60`}
+                        title={!c.eligible ? c.reason ?? "Not eligible" : benefit}
+                      >
+                        <span className="font-mono font-semibold">{c.code}</span>
+                        <span className="ml-2 text-[11px] opacity-80">{benefit}</span>
+                        {!c.eligible && c.reason && (
+                          <span className="ml-2 text-[11px] text-zinc-500">
+                            ({c.reason})
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <div className="flex justify-between text-zinc-400">
               <span>Delivery charge</span>
               <span>{deliveryAmount === 0 ? "Free" : `₹${deliveryAmount}`}</span>
@@ -505,6 +613,25 @@ export default function CheckoutPage() {
             Delivery details
           </h2>
           <div className="space-y-4">
+            <div>
+              <label htmlFor="preferredLanguage" className="mb-1 block text-xs font-medium text-zinc-400">
+                Preferred delivery language
+              </label>
+              <select
+                id="preferredLanguage"
+                value={preferredLanguage}
+                onChange={(e) => setPreferredLanguage(e.target.value as typeof preferredLanguage)}
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none"
+              >
+                <option value="ENGLISH">English</option>
+                <option value="KANNADA">Kannada</option>
+                <option value="HINDI">Hindi</option>
+                <option value="TELUGU">Telugu</option>
+              </select>
+              <p className="mt-1 text-[11px] text-zinc-500">
+                We&apos;ll share this with your delivery partner.
+              </p>
+            </div>
             <div>
               <label htmlFor="name" className="mb-1 block text-xs font-medium text-zinc-400">
                 Name

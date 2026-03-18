@@ -57,6 +57,17 @@ export async function POST(request: Request) {
       });
     }
 
+    const alreadyUsed = await prisma.couponRedemption.findFirst({
+      where: { userId, couponId: coupon.id },
+      select: { id: true },
+    });
+    if (alreadyUsed) {
+      return NextResponse.json({
+        valid: false,
+        message: "You have already used this coupon.",
+      });
+    }
+
     if (coupon.minOrderValue != null && coupon.minOrderValue > 0 && subtotal < coupon.minOrderValue) {
       return NextResponse.json({
         valid: false,

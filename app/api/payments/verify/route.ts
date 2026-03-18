@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendOrderWhatsAppNotification } from "@/lib/whatsapp";
+import { DELIVERY_CHARGE } from "@/lib/constants";
 
 const orderItemSchema = z.object({
   id: z.string(),
@@ -23,6 +24,7 @@ const orderPayloadSchema = z.object({
   usedFreeClassicMaggi: z.boolean().optional(),
   couponId: z.string().optional().nullable(),
   couponDiscountAmount: z.number().int().nonnegative().optional(),
+  preferredLanguage: z.enum(["KANNADA", "HINDI", "ENGLISH", "TELUGU"]).optional().nullable(),
 });
 
 const verifySchema = z.object({
@@ -88,7 +90,71 @@ export async function POST(request: Request) {
     const referralDiscountAmount = order.referralDiscountAmount ?? 0;
     const usedFreeClassicMaggi = order.usedFreeClassicMaggi ?? false;
     const couponId = order.couponId ?? undefined;
-    const couponDiscountAmount = order.couponDiscountAmount ?? 0;
+    const preferredLanguage = order.preferredLanguage ?? undefined;
+
+    // Compute coupon discount server-side (do not trust client).
+    const itemsSubtotal = order.items.reduce(
+      (sum, i) => sum + i.price * i.quantity,
+      0,
+    );
+    const discountedSubtotal = Math.max(0, itemsSubtotal - referralDiscountAmount);
+    let appliedCouponId: string | undefined;
+    let couponDiscountAmount = 0;
+
+    if (couponId) {
+      const now = new Date();
+      const coupon = await prisma.coupon.findFirst({
+        where: {
+          id: couponId,
+          isActive: true,
+          validFrom: { lte: now },
+          validTo: { gte: now },
+        },
+      });
+
+      if (!coupon) {
+        return NextResponse.json({ error: "Invalid or expired coupon." }, { status: 400 });
+      }
+
+      // First-order-only enforcement.
+      const orderCount = await prisma.order.count({
+        where: { userId: order.userId, status: { not: "CANCELLED" } },
+      });
+      const isFirstOrder = orderCount === 0;
+      if (coupon.firstOrderOnly && !isFirstOrder) {
+        return NextResponse.json({ error: "This coupon is valid for first order only." }, { status: 400 });
+      }
+
+      // Once-per-user enforcement.
+      const alreadyUsed = await prisma.couponRedemption.findFirst({
+        where: { userId: order.userId, couponId: coupon.id },
+        select: { id: true },
+      });
+      if (alreadyUsed) {
+        return NextResponse.json({ error: "You have already used this coupon." }, { status: 400 });
+      }
+
+      // Min order enforcement (applied after referral discounts).
+      if ((coupon.minOrderValue ?? 0) > 0 && discountedSubtotal < (coupon.minOrderValue ?? 0)) {
+        return NextResponse.json(
+          { error: `Minimum order value for this coupon is ₹${coupon.minOrderValue}.` },
+          { status: 400 },
+        );
+      }
+
+      if (coupon.type === "PERCENT_DISCOUNT") {
+        couponDiscountAmount = Math.round((discountedSubtotal * coupon.value) / 100);
+        if (coupon.maxDiscount != null && couponDiscountAmount > coupon.maxDiscount) {
+          couponDiscountAmount = coupon.maxDiscount;
+        }
+      } else if (coupon.type === "FIXED_OFF") {
+        couponDiscountAmount = Math.min(coupon.value, discountedSubtotal);
+      } else if (coupon.type === "FREE_DELIVERY") {
+        couponDiscountAmount = DELIVERY_CHARGE;
+      }
+
+      appliedCouponId = coupon.id;
+    }
 
     // Create Order and OrderItems in a single transaction so both succeed or both roll back.
     const createdOrder = await prisma.$transaction(async (tx) => {
@@ -104,8 +170,9 @@ export async function POST(request: Request) {
           longitude: order.longitude ?? undefined,
           referralDiscountAmount,
           usedFreeClassicMaggi,
-          couponId: couponId || undefined,
+          couponId: appliedCouponId,
           couponDiscountAmount,
+          preferredLanguage,
         },
       });
 
@@ -153,6 +220,22 @@ export async function POST(request: Request) {
           where: { id: order.userId },
           data: { freeClassicMaggiAvailable: false },
         });
+      }
+
+      // 5. If coupon was applied, mark it as redeemed (once per user).
+      if (appliedCouponId) {
+        try {
+          await tx.couponRedemption.create({
+            data: {
+              userId: order.userId,
+              couponId: appliedCouponId,
+              orderId: newOrder.id,
+            },
+          });
+        } catch (err) {
+          // Unique constraint (already used) should roll back the whole transaction.
+          throw err;
+        }
       }
 
       return newOrder;

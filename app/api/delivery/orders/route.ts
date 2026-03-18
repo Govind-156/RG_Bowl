@@ -36,6 +36,7 @@ export async function GET() {
       address: o.address,
       createdAt: o.createdAt,
       paymentId: o.paymentId,
+      preferredLanguage: o.preferredLanguage,
       customerName: o.user.name,
       phone: o.user.phone,
       items: o.items.map((i) => ({

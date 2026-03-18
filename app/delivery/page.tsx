@@ -21,6 +21,7 @@ type DeliveryOrder = {
   createdAt: string;
   paymentId: string;
   status: string;
+  preferredLanguage?: "KANNADA" | "HINDI" | "ENGLISH" | "TELUGU" | null;
 };
 
 export default function DeliveryDashboardPage() {
@@ -174,6 +175,20 @@ export default function DeliveryDashboardPage() {
                           {order.phone}
                         </a>
                       </p>
+                      {order.preferredLanguage && (
+                        <p className="sm:text-right">
+                          <span className="text-zinc-500">Language:</span>{" "}
+                          <span className="text-zinc-200">
+                            {order.preferredLanguage === "KANNADA"
+                              ? "Kannada"
+                              : order.preferredLanguage === "HINDI"
+                                ? "Hindi"
+                                : order.preferredLanguage === "TELUGU"
+                                  ? "Telugu"
+                                  : "English"}
+                          </span>
+                        </p>
+                      )}
                       <p className="sm:col-span-2">
                         <span className="text-zinc-500">Address:</span>{" "}
                         <span className="text-zinc-200">{order.address}</span>
