@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAdmin } from "@/lib/auth-helpers";
+import type { Coupon } from "@prisma/client";
 
 const createCouponSchema = z.object({
   code: z.string().min(1).max(50),
@@ -27,7 +28,7 @@ export async function GET() {
     });
 
     return NextResponse.json(
-      coupons.map((c) => ({
+      coupons.map((c: Coupon) => ({
         id: c.id,
         code: c.code,
         type: c.type,
