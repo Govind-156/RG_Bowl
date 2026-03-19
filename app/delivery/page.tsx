@@ -116,7 +116,7 @@ export default function DeliveryDashboardPage() {
             <p className="text-xs text-zinc-400 sm:text-sm">
               Orders assigned to you and marked as{" "}
               <span className="font-semibold text-amber-300">
-                OUT_FOR_DELIVERY
+                Delivery hero on the way 🏍️
               </span>
               .
             </p>

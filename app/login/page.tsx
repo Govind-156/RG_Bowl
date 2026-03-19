@@ -45,7 +45,7 @@ function LoginForm() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-black px-6 py-16 text-zinc-50">
-      <section className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-950/80 p-6 shadow-lg">
+      <section className="ui-card w-full max-w-sm border border-zinc-800 bg-zinc-950/80 p-6 shadow-lg">
         <h1 className="mb-2 text-xl font-semibold tracking-tight">Log in</h1>
         <p className="mb-6 text-sm text-zinc-400">
           Sign in to your RG Bowl account.

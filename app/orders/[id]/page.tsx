@@ -4,6 +4,16 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { getOrderStatusLabel } from "@/lib/order-status";
+
+const FUNNY_STATUS_MESSAGES = [
+  "Don’t sleep 😴",
+  "Your Maggi smells amazing 😋",
+  "Roommate alert 🚨 hide your bowl",
+  "BTM hunger detected. Bowl incoming 🕵️‍♂️",
+  "Hydrate while you wait 💧",
+  "If you hear footsteps… it’s your Maggi 👣",
+] as const;
 
 const STATUS_STEPS = [
   "PLACED",
@@ -19,22 +29,22 @@ const STEP_CONFIG: Record<
   { label: string; description: string; eta?: string }
 > = {
   PLACED: {
-    label: "Order placed",
+    label: getOrderStatusLabel("PLACED"),
     description: "We've received your order.",
     eta: "~10 min",
   },
   PREPARING: {
-    label: "Preparing your order",
+    label: getOrderStatusLabel("PREPARING"),
     description: "We're cooking your Maggi.",
     eta: "~8 min",
   },
   OUT_FOR_DELIVERY: {
-    label: "Out for delivery",
+    label: getOrderStatusLabel("OUT_FOR_DELIVERY"),
     description: "On the way to you.",
     eta: "~5 min",
   },
   DELIVERED: {
-    label: "Delivered",
+    label: getOrderStatusLabel("DELIVERED"),
     description: "Enjoy your Maggi!",
   },
 };
@@ -72,7 +82,16 @@ export default function OrderTrackingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusToast, setStatusToast] = useState<string | null>(null);
+  const [funnyMessage, setFunnyMessage] = useState<string>("");
   const prevStatusRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const pick =
+      FUNNY_STATUS_MESSAGES[
+        Math.floor(Math.random() * FUNNY_STATUS_MESSAGES.length)
+      ];
+    setFunnyMessage(pick);
+  }, []);
 
   useEffect(() => {
     if (!orderId) return;
@@ -186,10 +205,15 @@ export default function OrderTrackingPage() {
         </div>
 
         {/* Stepper */}
-        <section className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 sm:p-6">
+        <section className="ui-card mb-8 border border-zinc-800 bg-zinc-950/60 p-5 sm:p-6">
           <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Order status
           </h2>
+          {funnyMessage && (
+            <p className="mb-4 text-sm text-zinc-300">
+              {funnyMessage}
+            </p>
+          )}
           <div className="relative">
             <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-zinc-800" />
             <div

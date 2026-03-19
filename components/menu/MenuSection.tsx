@@ -109,6 +109,8 @@ export default function MenuSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [toastOpen, setToastOpen] = useState(false);
+  const [toastTimer, setToastTimer] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,11 +143,15 @@ export default function MenuSection() {
 
   const handleAddToCart = (dish: Dish) => {
     addItem({ id: dish.id, name: dish.name, price: dish.price });
+    if (toastTimer) window.clearTimeout(toastTimer);
+    setToastOpen(true);
+    const id = window.setTimeout(() => setToastOpen(false), 2400);
+    setToastTimer(id);
   };
 
   return (
     <motion.section
-      className="w-full max-w-5xl rounded-2xl border border-zinc-800/80 bg-zinc-950/80 px-4 py-6 shadow-2xl sm:px-6 sm:py-8"
+      className="relative w-full max-w-5xl rounded-2xl border border-zinc-800/80 bg-zinc-950/80 px-4 py-6 shadow-2xl sm:px-6 sm:py-8"
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.1 }}
@@ -164,6 +170,22 @@ export default function MenuSection() {
           Flat delivery · No surge
         </p>
       </header>
+
+      <AnimatePresence>
+        {toastOpen && (
+          <motion.div
+            key="add-to-cart-toast"
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="pointer-events-none fixed bottom-24 left-1/2 z-[60] w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-amber-400/30 bg-zinc-950/95 px-4 py-3 text-sm text-zinc-100 shadow-2xl shadow-black/40 backdrop-blur"
+          >
+            <p className="font-semibold text-amber-200">🍜 Added to your bowl!</p>
+            <p className="text-xs text-zinc-300">Don’t forget drinks 👀</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {error && (
         <motion.p

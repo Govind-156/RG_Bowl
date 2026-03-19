@@ -1,11 +1,32 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import MenuSection from "@/components/menu/MenuSection";
 import CartDrawer from "@/components/cart/CartPlaceholder";
 import CheckoutPlaceholder from "@/components/checkout/CheckoutPlaceholder";
 
 export default function Home() {
+  const [popupOpen, setPopupOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const key = "rg_bowl_home_hungry_popup_shown";
+      if (sessionStorage.getItem(key) === "1") return;
+      const delayMs = 5000 + Math.floor(Math.random() * 5000); // 5–10s
+      const t = window.setTimeout(() => {
+        sessionStorage.setItem(key, "1");
+        setPopupOpen(true);
+      }, delayMs);
+      return () => window.clearTimeout(t);
+    } catch {
+      // ignore storage errors (private mode, etc.)
+      const delayMs = 5000 + Math.floor(Math.random() * 5000);
+      const t = window.setTimeout(() => setPopupOpen(true), delayMs);
+      return () => window.clearTimeout(t);
+    }
+  }, []);
+
   const scrollToMenu = () => {
     const el = document.getElementById("menu-section");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -13,6 +34,69 @@ export default function Home() {
 
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-x-hidden">
+      <AnimatePresence>
+        {popupOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setPopupOpen(false)}
+              aria-hidden
+            />
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              className="fixed left-1/2 top-1/2 z-[80] w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-5 text-zinc-50 shadow-2xl shadow-black/50"
+              initial={{ opacity: 0, scale: 0.98, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-amber-200">
+                    You look hungry 👀
+                  </p>
+                  <p className="text-sm text-zinc-300">
+                    Order now before your roommate eats your Maggi 😭
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPopupOpen(false)}
+                  className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPopupOpen(false);
+                    scrollToMenu();
+                  }}
+                  className="inline-flex flex-1 items-center justify-center rounded-full bg-amber-400 px-4 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-400/25 transition hover:bg-amber-300"
+                >
+                  Order now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPopupOpen(false)}
+                  className="inline-flex flex-1 items-center justify-center rounded-full border border-zinc-700 bg-transparent px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100"
+                >
+                  Maybe later
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Gradient hero background - mobile-first */}
       <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-center px-4 py-16 sm:min-h-[80vh] sm:px-6 sm:py-20 md:px-8">
         <div

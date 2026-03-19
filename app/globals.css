@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --muted: #a1a1aa;
+  --background: #020617;
+  --foreground: #f8fafc;
+  --muted: #cbd5e1;
   --accent: #fbbf24;
   --accent-hover: #f59e0b;
-  --card: #18181b;
-  --card-border: #27272a;
-  --gradient-hero-start: #0c0a09;
-  --gradient-hero-mid: #1c1917;
-  --gradient-hero-end: #18181b;
+  --card: #0f172a;
+  --card-border: #1e293b;
+  --gradient-hero-start: #020617;
+  --gradient-hero-mid: #0b1224;
+  --gradient-hero-end: #0f172a;
 }
 
 @theme inline {
@@ -45,4 +45,10 @@ body {
 
 .animate-shimmer {
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@layer utilities {
+  .ui-card {
+    @apply rounded-2xl shadow-lg shadow-black/20 transition duration-300 hover:scale-[1.03];
+  }
 }

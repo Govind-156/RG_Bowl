@@ -467,7 +467,7 @@ export default function CheckoutPage() {
           Checkout
         </h1>
 
-        <section className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-6">
+        <section className="ui-card mb-8 border border-zinc-800 bg-zinc-950/60 p-4 sm:p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-400">
             Order summary
           </h2>
@@ -608,7 +608,7 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 sm:p-6">
+        <section className="ui-card mb-8 border border-zinc-800 bg-zinc-950/60 p-4 sm:p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-400">
             Delivery details
           </h2>

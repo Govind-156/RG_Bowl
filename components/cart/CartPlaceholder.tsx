@@ -90,24 +90,45 @@ export default function CartDrawer() {
 
               <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
                 {hasItems ? (
-                  <motion.ul
-                    className="space-y-3"
-                    initial="hidden"
-                    animate="show"
-                    variants={{
-                      hidden: {},
-                      show: { transition: { staggerChildren: 0.04 } },
-                    }}
-                  >
-                    {items.map((item, i) => (
-                      <motion.li
-                        key={item.id}
-                        variants={{
-                          hidden: { opacity: 0, x: -8 },
-                          show: { opacity: 1, x: 0 },
-                        }}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/80 px-4 py-3"
-                      >
+                  <div className="space-y-3">
+                    <AnimatePresence>
+                      {totalQuantity === 1 && (
+                        <motion.div
+                          key="one-more-nudge"
+                          initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                          className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-center"
+                        >
+                          <p className="text-sm font-semibold text-amber-200">
+                            Bro… add one more 😭
+                          </p>
+                          <p className="text-xs text-amber-100/80">
+                            This won’t be enough
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <motion.ul
+                      className="space-y-3"
+                      initial="hidden"
+                      animate="show"
+                      variants={{
+                        hidden: {},
+                        show: { transition: { staggerChildren: 0.04 } },
+                      }}
+                    >
+                      {items.map((item) => (
+                        <motion.li
+                          key={item.id}
+                          variants={{
+                            hidden: { opacity: 0, x: -8 },
+                            show: { opacity: 1, x: 0 },
+                          }}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/80 px-4 py-3"
+                        >
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-zinc-50 truncate">{item.name}</p>
                           <p className="text-xs text-zinc-400">
@@ -145,9 +166,10 @@ export default function CartDrawer() {
                             ₹{item.price * item.quantity}
                           </span>
                         </div>
-                      </motion.li>
-                    ))}
-                  </motion.ul>
+                        </motion.li>
+                      ))}
+                    </motion.ul>
+                  </div>
                 ) : (
                   <p className="py-8 text-center text-sm text-zinc-500">
                     Add items from the menu to get started.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getOrderStatusLabel } from "@/lib/order-status";
 
 const ORDER_STATUSES = [
   "PLACED",
@@ -303,7 +304,7 @@ export default function OrdersClient() {
                         <span
                           className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_BADGE_CLASS[order.status]}`}
                         >
-                          {order.status.replace(/_/g, " ")}
+                          {getOrderStatusLabel(order.status)}
                         </span>
                       </div>
                       <span className="text-[11px] text-zinc-400">{orderTime}</span>
@@ -371,7 +372,7 @@ export default function OrdersClient() {
                         >
                           {ORDER_STATUSES.map((s) => (
                             <option key={s} value={s}>
-                              {s.replace(/_/g, " ")}
+                              {getOrderStatusLabel(s)}
                             </option>
                           ))}
                         </select>

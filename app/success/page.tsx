@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -56,6 +56,32 @@ function SuccessContent() {
   const orderId = searchParams.get("orderId");
   const placedAt = searchParams.get("placed");
   const orderTimeLabel = formatOrderTime(placedAt);
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
+
+  const shareText = `Bro I just ordered from RG Bowl 🍜🔥\nThis app is crazy 😂\nTry it: https://rgbowl.vercel.app`;
+
+  const confettiPieces = useMemo(
+    () =>
+      Array.from({ length: 26 }).map((_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delayMs: Math.random() * 180,
+        durationMs: 1100 + Math.random() * 650,
+        rotate: Math.floor(Math.random() * 360),
+        size: 6 + Math.floor(Math.random() * 6),
+        color: ["#fbbf24", "#a78bfa", "#34d399", "#60a5fa", "#f472b6"][i % 5],
+      })),
+    [],
+  );
+
+  useEffect(() => {
+    // Reduce motion support: disable confetti for users requesting reduced motion.
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 text-zinc-50 sm:px-6">
@@ -63,15 +89,40 @@ function SuccessContent() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950/90 px-6 py-8 shadow-xl"
+        className="ui-card w-full max-w-md border border-zinc-800 bg-zinc-950/90 px-6 py-8 shadow-xl hover:scale-[1.03]"
       >
+        {/* Confetti */}
+        <div className="pointer-events-none relative -mt-2 mb-2 h-14 overflow-hidden">
+          {confettiPieces.map((p) => (
+            <span
+              key={p.id}
+              style={{
+                left: `${p.left}%`,
+                width: p.size,
+                height: p.size * 1.6,
+                backgroundColor: p.color,
+                animationDelay: `${p.delayMs}ms`,
+                animationDuration: `${p.durationMs}ms`,
+                transform: `rotate(${p.rotate}deg)`,
+              }}
+              className="absolute top-0 rounded-sm opacity-0 [animation-name:confetti-fall] [animation-timing-function:ease-out] [animation-fill-mode:forwards]"
+            />
+          ))}
+        </div>
+
         <div className="text-center">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-400">
             Order confirmed
           </p>
           <h1 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            Order placed
+            🎉 Order Placed!
           </h1>
+          <p className="mb-2 text-sm font-medium text-zinc-200">
+            Chef is already cooking 🍜🔥
+          </p>
+          <p className="mb-4 text-sm text-zinc-400">
+            Don’t sleep 😴 Your Maggi is coming
+          </p>
           {orderId && (
             <p className="mb-4 text-sm text-zinc-400">
               Order ID <span className="font-mono font-medium text-zinc-200">{shortOrderId(orderId)}</span>
@@ -114,6 +165,40 @@ function SuccessContent() {
         )}
 
         <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                setShareStatus("idle");
+                if (typeof navigator !== "undefined" && "share" in navigator) {
+                  const nav = navigator as Navigator & { share?: (data: { text: string }) => Promise<void> };
+                  if (nav.share) {
+                    await nav.share({ text: shareText });
+                    return;
+                  }
+                }
+                if (navigator.clipboard?.writeText) {
+                  await navigator.clipboard.writeText(shareText);
+                  setShareStatus("copied");
+                  setTimeout(() => setShareStatus("idle"), 2000);
+                  return;
+                }
+                throw new Error("No share or clipboard support");
+              } catch {
+                setShareStatus("error");
+                setTimeout(() => setShareStatus("idle"), 2500);
+              }
+            }}
+            className="inline-flex items-center justify-center rounded-full border border-zinc-600 bg-transparent px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:text-zinc-50"
+          >
+            Share with friends 😎
+          </button>
+          {shareStatus === "copied" && (
+            <p className="text-center text-xs text-emerald-400">Copied to clipboard!</p>
+          )}
+          {shareStatus === "error" && (
+            <p className="text-center text-xs text-red-400">Couldn’t share. Please copy manually.</p>
+          )}
           {orderId && (
             <Link
               href={`/orders/${orderId}`}
@@ -140,6 +225,22 @@ function SuccessContent() {
           </p>
         )}
       </motion.section>
+
+      <style jsx global>{`
+        @keyframes confetti-fall {
+          0% {
+            opacity: 0;
+            transform: translateY(-10px) rotate(0deg);
+          }
+          10% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(70px) rotate(360deg);
+          }
+        }
+      `}</style>
     </main>
   );
 }
