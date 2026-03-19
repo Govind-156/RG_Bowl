@@ -179,15 +179,18 @@ function SuccessContent() {
         )}
 
         <div className="flex flex-col gap-3">
-          <button
+          <motion.button
             type="button"
             disabled={alreadySpun}
             onClick={() => setShowSpinWheel(true)}
             className="inline-flex items-center justify-center rounded-full border border-violet-400/40 bg-violet-400/10 px-6 py-3 text-sm font-semibold text-violet-200 shadow-lg shadow-violet-500/10 transition hover:bg-violet-400/20 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
             {alreadySpun ? "🎁 Spin used for this order" : "🎁 Spin & Win"}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={async () => {
               try {
@@ -212,9 +215,12 @@ function SuccessContent() {
               }
             }}
             className="inline-flex items-center justify-center rounded-full border border-zinc-600 bg-transparent px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-800 hover:text-zinc-50"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
             Share with friends 😎
-          </button>
+          </motion.button>
           {shareStatus === "copied" && (
             <p className="text-center text-xs text-emerald-400">Copied to clipboard!</p>
           )}

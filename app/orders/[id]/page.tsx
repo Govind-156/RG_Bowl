@@ -177,7 +177,12 @@ export default function OrderTrackingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black px-4 py-6 text-zinc-50 sm:px-6 sm:py-8">
+    <motion.main
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-black px-4 py-6 text-zinc-50 sm:px-6 sm:py-8"
+    >
       <div className="mx-auto max-w-lg">
         <AnimatePresence>
           {statusToast && (
@@ -232,15 +237,21 @@ export default function OrderTrackingPage() {
                 const config = STEP_CONFIG[step as OrderStatusType];
                 return (
                   <li key={step} className="flex items-start gap-4 pb-6 last:pb-0">
-                    <div
+                    <motion.div
                       className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-colors ${
                         isCompleted
                           ? "border-amber-400 bg-amber-400 text-black"
                           : "border-zinc-700 bg-zinc-900 text-zinc-500"
                       } ${isCurrent ? "ring-2 ring-amber-400/50 ring-offset-2 ring-offset-zinc-950" : ""}`}
+                      animate={isCurrent ? { scale: [1, 1.1, 1] } : undefined}
+                      transition={
+                        isCurrent
+                          ? { duration: 1, repeat: Infinity, repeatType: "loop", ease: "easeInOut" }
+                          : undefined
+                      }
                     >
                       {isCompleted && i < currentStep ? "✓" : i + 1}
-                    </div>
+                    </motion.div>
                     <div className="min-w-0 flex-1 pt-0.5">
                       <p
                         className={`font-medium ${
@@ -322,6 +333,6 @@ export default function OrderTrackingPage() {
           Status updates every 12 seconds
         </p>
       </div>
-    </main>
+    </motion.main>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 type DeliveryOrderItem = {
   id: string;
@@ -106,7 +107,12 @@ export default function DeliveryDashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-black px-4 py-8 text-zinc-50 sm:px-6">
+    <motion.main
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-black px-4 py-8 text-zinc-50 sm:px-6"
+    >
       <div className="mx-auto max-w-3xl">
         <header className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <div>
@@ -147,9 +153,11 @@ export default function DeliveryDashboardPage() {
                   .map((i) => `${i.name} × ${i.quantity}`)
                   .join(", ");
                 return (
-                  <article
+                  <motion.article
                     key={order.id}
                     className="flex flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-3 text-xs sm:px-4 sm:py-4 sm:text-sm"
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2">
@@ -203,30 +211,36 @@ export default function DeliveryDashboardPage() {
                       <span className="font-semibold text-amber-300">
                         ₹{order.totalAmount}
                       </span>
-                      <button
+                      <motion.button
                         type="button"
                         onClick={() => handleOpenInMaps(order.address)}
                         className="rounded-full bg-amber-400 px-3 py-1.5 text-[11px] font-semibold text-black shadow-md shadow-amber-400/30 hover:bg-amber-300"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
                       >
                         Open in Maps
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
                         type="button"
                         onClick={() => handleMarkDelivered(order.id)}
                         disabled={updatingId === order.id}
                         className="rounded-full border border-emerald-400/70 bg-emerald-500/20 px-3 py-1.5 text-[11px] font-semibold text-emerald-200 shadow-md shadow-emerald-500/20 hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
                       >
                         {updatingId === order.id ? "Marking…" : "Mark as delivered"}
-                      </button>
+                      </motion.button>
                     </div>
-                  </article>
+                  </motion.article>
                 );
               })}
             </div>
           )}
         </section>
       </div>
-    </main>
+    </motion.main>
   );
 }
 

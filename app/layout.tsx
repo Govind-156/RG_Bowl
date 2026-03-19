@@ -33,7 +33,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetBrainsMono.variable} flex min-h-screen bg-[var(--background)] text-zinc-50 antialiased`}
       >
         <Providers>
-          <div className="flex min-h-screen w-full flex-col">
+          <div className="flex min-h-screen w-full flex-col pt-14">
             <Navbar />
             <ClosedNowBanner />
             {children}

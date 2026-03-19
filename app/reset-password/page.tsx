@@ -3,6 +3,7 @@
 import { FormEvent, useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -75,11 +76,15 @@ function ResetPasswordForm() {
             href="/forgot-password"
             className="inline-flex items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-black shadow-md hover:bg-amber-300"
           >
-            Get new OTP
+            <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+              Get new OTP
+            </motion.span>
           </Link>
           <p className="mt-4 text-center text-xs text-zinc-400">
             <Link href="/login" className="font-medium text-amber-400 hover:text-amber-300">
-              ← Back to login
+              <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+                ← Back to login
+              </motion.span>
             </Link>
           </p>
         </section>
@@ -169,18 +174,23 @@ function ResetPasswordForm() {
             />
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
-          <button
+          <motion.button
             type="submit"
             disabled={isSubmitting}
             className="flex w-full items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-black shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
             {isSubmitting ? "Updating…" : "Update password"}
-          </button>
+          </motion.button>
         </form>
 
         <p className="mt-4 text-center text-xs text-zinc-400">
           <Link href="/login" className="font-medium text-amber-400 hover:text-amber-300">
-            ← Back to login
+            <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+              ← Back to login
+            </motion.span>
           </Link>
         </p>
       </section>

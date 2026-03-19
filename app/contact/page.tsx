@@ -3,6 +3,7 @@
 import { FormEvent, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
 
 export default function ContactPage() {
   const { data: session } = useSession();
@@ -101,7 +102,7 @@ export default function ContactPage() {
                   Reason
                 </label>
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => setType("GENERAL")}
                     className={`rounded-full border px-3 py-1.5 ${
@@ -109,10 +110,13 @@ export default function ContactPage() {
                         ? "border-amber-400 bg-amber-400/10 text-amber-300"
                         : "border-zinc-700 bg-zinc-900 text-zinc-300"
                     }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
                   >
                     General question / feedback
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     type="button"
                     onClick={() => setType("COMPLAINT")}
                     className={`rounded-full border px-3 py-1.5 ${
@@ -120,9 +124,12 @@ export default function ContactPage() {
                         ? "border-red-400 bg-red-500/10 text-red-300"
                         : "border-zinc-700 bg-zinc-900 text-zinc-300"
                     }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
                   >
                     Order complaint / damage
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
@@ -265,19 +272,24 @@ export default function ContactPage() {
               <p className="text-sm text-red-400">{error}</p>
             )}
 
-            <button
+            <motion.button
               type="submit"
               disabled={isSubmitting}
               className="w-full rounded-full bg-amber-400 px-4 py-2.5 text-sm font-semibold text-black shadow-md transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
             >
               {isSubmitting ? "Sending…" : "Send message"}
-            </button>
+            </motion.button>
           </form>
         )}
 
         <p className="mt-6 text-center text-xs text-zinc-500">
           <Link href="/" className="text-amber-400 hover:text-amber-300">
-            ← Back to Home
+            <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+              ← Back to Home
+            </motion.span>
           </Link>
         </p>
       </div>

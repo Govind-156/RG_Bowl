@@ -34,14 +34,14 @@ function DishCardSkeleton() {
       variants={item}
       className="flex flex-col overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/80 shadow-lg"
     >
-      <div className="aspect-[4/3] w-full animate-pulse rounded-t-2xl bg-zinc-800/80" />
+      <div className="aspect-[4/3] w-full rounded-t-2xl bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-pulse" />
       <div className="flex flex-col gap-3 p-4">
-        <div className="h-4 w-3/4 rounded-lg bg-zinc-800/80 animate-pulse" />
-        <div className="h-3 w-full rounded bg-zinc-800/60 animate-pulse" />
-        <div className="h-3 w-2/3 rounded bg-zinc-800/60 animate-pulse" />
+        <div className="h-4 w-3/4 rounded-lg bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-pulse" />
+        <div className="h-3 w-full rounded bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-pulse" />
+        <div className="h-3 w-2/3 rounded bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-pulse" />
         <div className="mt-2 flex items-center justify-between">
-          <div className="h-5 w-16 rounded bg-zinc-800/80 animate-pulse" />
-          <div className="h-9 w-28 rounded-full bg-zinc-800/80 animate-pulse" />
+          <div className="h-5 w-16 rounded bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-pulse" />
+          <div className="h-9 w-28 rounded-full bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 animate-pulse" />
         </div>
       </div>
     </motion.div>
@@ -59,7 +59,11 @@ function DishCard({
     <motion.article
       variants={item}
       className="flex flex-col overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/80 shadow-xl shadow-black/20 transition-shadow hover:shadow-amber-400/5 hover:border-zinc-700"
-      whileHover={{ y: -6, transition: { duration: 0.2 } }}
+      whileHover={{
+        scale: 1.05,
+        boxShadow: "0px 10px 30px rgba(0,0,0,0.3)",
+        transition: { duration: 0.25 },
+      }}
       whileTap={{ scale: 0.99 }}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-800">
@@ -92,8 +96,9 @@ function DishCard({
         <motion.button
           type="button"
           className="inline-flex w-full items-center justify-center rounded-full bg-amber-400 px-4 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-400/20 transition-colors hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ duration: 0.2 }}
           onClick={() => onAddToCart(dish)}
         >
           Add to cart
@@ -175,9 +180,9 @@ export default function MenuSection() {
         {toastOpen && (
           <motion.div
             key="add-to-cart-toast"
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
             className="pointer-events-none fixed bottom-24 left-1/2 z-[60] w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl border border-amber-400/30 bg-zinc-950/95 px-4 py-3 text-sm text-zinc-100 shadow-2xl shadow-black/40 backdrop-blur"
           >

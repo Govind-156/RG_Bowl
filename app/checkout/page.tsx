@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { z } from "zod";
 import { useCartStore } from "@/lib/cart-store";
 import {
@@ -570,23 +571,29 @@ export default function CheckoutPage() {
               {appliedCoupon ? (
                 <div className="flex flex-1 min-w-[200px] items-center justify-between gap-2 rounded-lg border border-emerald-800 bg-emerald-950/40 px-3 py-2 text-sm">
                   <span className="text-emerald-400">{appliedCoupon.code} applied</span>
-                  <button
+                  <motion.button
                     type="button"
                     onClick={handleRemoveCoupon}
                     className="text-xs text-zinc-400 underline hover:text-zinc-300"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
                   >
                     Remove
-                  </button>
+                  </motion.button>
                 </div>
               ) : (
-                <button
+                <motion.button
                   type="button"
                   onClick={() => void handleApplyCoupon()}
                   disabled={couponLoading || !couponCode.trim()}
                   className="rounded-lg border border-amber-400/60 bg-amber-400/10 px-4 py-2 text-sm font-medium text-amber-300 transition hover:bg-amber-400/20 disabled:opacity-50"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
                 >
                   {couponLoading ? "Checking…" : "Apply"}
-                </button>
+                </motion.button>
               )}
             </div>
             {couponError && (
@@ -647,7 +654,7 @@ export default function CheckoutPage() {
                           ? `${c.value}% off${c.firstOrderOnly ? " (first order)" : ""}`
                           : `₹${c.value} off${(c.minOrderValue ?? 0) > 0 ? ` on ₹${c.minOrderValue}+` : ""}`;
                     return (
-                      <button
+                      <motion.button
                         key={c.id}
                         type="button"
                         disabled={disabled}
@@ -660,6 +667,9 @@ export default function CheckoutPage() {
                             : "border-zinc-800 bg-zinc-900/30 text-zinc-500"
                         } disabled:cursor-not-allowed disabled:opacity-60`}
                         title={!c.eligible ? c.reason ?? "Not eligible" : benefit}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
                       >
                         <span className="font-mono font-semibold">{c.code}</span>
                         <span className="ml-2 text-[11px] opacity-80">{benefit}</span>
@@ -668,7 +678,7 @@ export default function CheckoutPage() {
                             ({c.reason})
                           </span>
                         )}
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
@@ -746,16 +756,19 @@ export default function CheckoutPage() {
                 <label htmlFor="address" className="block text-xs font-medium text-zinc-400">
                   Address
                 </label>
-                <button
+                <motion.button
                   type="button"
                   onClick={handleUseMyLocation}
                   disabled={locationStatus === "loading"}
                   className="rounded-full border border-amber-400/60 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-300 transition hover:bg-amber-400/20 disabled:opacity-50"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
                 >
                   {locationStatus === "loading"
                     ? "Getting location…"
                     : "Use My Location"}
-                </button>
+                </motion.button>
               </div>
               {latitude != null && longitude != null && (
                 <p className="mb-1.5 text-[11px] text-zinc-500">
@@ -804,16 +817,21 @@ export default function CheckoutPage() {
             href="/"
             className="text-center text-sm text-zinc-400 underline hover:text-zinc-300"
           >
-            ← Back to menu
+            <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+              ← Back to menu
+            </motion.span>
           </Link>
-          <button
+          <motion.button
             type="button"
             disabled={!isFormValid || isProcessing}
             onClick={handlePay}
             className="rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-black shadow-lg shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
             {isProcessing ? "Opening payment…" : `Pay ₹${totalPrice}`}
-          </button>
+          </motion.button>
         </div>
       </div>
     </main>

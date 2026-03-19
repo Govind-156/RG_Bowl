@@ -3,6 +3,7 @@
 import { FormEvent, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 
 function SignupForm() {
   const router = useRouter();
@@ -121,18 +122,23 @@ function SignupForm() {
             />
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
-          <button
+          <motion.button
             type="submit"
             disabled={isSubmitting}
             className="flex w-full items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-black shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
             {isSubmitting ? "Creating account…" : "Sign up"}
-          </button>
+          </motion.button>
         </form>
         <p className="mt-4 text-center text-xs text-zinc-400">
           Already have an account?{" "}
           <Link href="/login" className="font-medium text-amber-400 hover:text-amber-300">
-            Log in
+            <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+              Log in
+            </motion.span>
           </Link>
         </p>
       </section>

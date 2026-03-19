@@ -4,6 +4,7 @@ import { FormEvent, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
 
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 
@@ -210,18 +211,23 @@ export default function EditProfilePage() {
           )}
 
           <div className="flex flex-col gap-3 pt-2">
-            <button
+            <motion.button
               type="submit"
               disabled={isSubmitting}
               className="rounded-full bg-amber-400 px-4 py-2.5 text-sm font-semibold text-black shadow-md transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
             >
               {isSubmitting ? "Saving…" : "Save changes"}
-            </button>
+            </motion.button>
             <Link
               href="/profile"
               className="text-center text-sm text-zinc-400 hover:text-zinc-300"
             >
-              Cancel
+              <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+                Cancel
+              </motion.span>
             </Link>
           </div>
         </form>

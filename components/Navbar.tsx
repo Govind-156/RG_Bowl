@@ -57,7 +57,6 @@ export default function Navbar() {
         className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-white/5 backdrop-blur-lg"
       >
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:h-16 sm:px-6">
-          {/* Logo */}
           <Link
             href="/"
             className="text-lg font-extrabold tracking-wide text-amber-400 transition-colors duration-300 hover:text-amber-300 sm:text-xl"
@@ -65,7 +64,6 @@ export default function Navbar() {
             RG Bowl
           </Link>
 
-          {/* Desktop nav */}
           <nav className="hidden items-center gap-5 text-sm md:flex">
             <Link href="/contact" className={navLinkClass}>
               Contact
@@ -90,7 +88,6 @@ export default function Navbar() {
                   My Orders
                 </Link>
 
-                {/* Profile dropdown */}
                 <div ref={profileRef} className="relative">
                   <button
                     type="button"
@@ -153,7 +150,6 @@ export default function Navbar() {
             )}
           </nav>
 
-          {/* Mobile hamburger */}
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
@@ -165,14 +161,11 @@ export default function Navbar() {
         </div>
       </motion.header>
 
-      {/* Spacer so content doesn't hide behind the fixed navbar */}
       <div className="h-14 sm:h-16" />
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {drawerOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -183,7 +176,6 @@ export default function Navbar() {
               aria-hidden
             />
 
-            {/* Drawer panel */}
             <motion.aside
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -191,7 +183,6 @@ export default function Navbar() {
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className="fixed right-0 top-0 z-[70] flex h-full w-72 flex-col bg-[#020617] shadow-2xl shadow-black/60"
             >
-              {/* Header */}
               <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
                 <span className="text-lg font-extrabold tracking-wide text-amber-400">
                   RG Bowl
@@ -206,7 +197,6 @@ export default function Navbar() {
                 </button>
               </div>
 
-              {/* Links */}
               <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
                 <DrawerLink href="/contact" icon={<Phone size={18} />}>Contact</DrawerLink>
 
@@ -255,7 +245,6 @@ export default function Navbar() {
                 )}
               </nav>
 
-              {/* Footer */}
               {session && (
                 <div className="border-t border-white/5 px-5 py-3">
                   <p className="truncate text-xs text-zinc-500">

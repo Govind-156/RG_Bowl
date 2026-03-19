@@ -125,9 +125,9 @@ export default function SpinWheel({
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
       <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 10 }}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
         transition={{ duration: 0.25 }}
         className="w-full max-w-md rounded-2xl border border-zinc-700 bg-[#0f172a] p-5 shadow-2xl shadow-cyan-500/10"
       >

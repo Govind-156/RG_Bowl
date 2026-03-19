@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
 
 type ReferredUser = {
   id: string;
@@ -120,7 +121,9 @@ export default function MyReferralsPage() {
             </p>
           </div>
           <Link href="/profile" className="text-sm text-amber-400 hover:text-amber-300">
-            ← Profile
+            <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+              ← Profile
+            </motion.span>
           </Link>
         </header>
 
@@ -142,13 +145,16 @@ export default function MyReferralsPage() {
                   value={data.referralLink}
                   className="w-full flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-300 outline-none"
                 />
-                <button
+                <motion.button
                   type="button"
                   onClick={handleCopy}
                   className="rounded-full border border-amber-400/60 bg-amber-400/10 px-4 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-400/20"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
                 >
                   {copied ? "Copied!" : "Copy link"}
-                </button>
+                </motion.button>
               </div>
               <p className="mt-3 text-xs text-zinc-500">
                 Referral code:{" "}

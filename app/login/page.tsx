@@ -4,6 +4,7 @@ import { FormEvent, useState, Suspense } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 
 function LoginForm() {
   const router = useRouter();
@@ -92,21 +93,28 @@ function LoginForm() {
           {error && <p className="text-xs text-red-400">{error}</p>}
           <p className="text-right text-xs">
             <Link href="/forgot-password" className="text-amber-400 hover:text-amber-300">
-              Forgot password?
+              <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+                Forgot password?
+              </motion.span>
             </Link>
           </p>
-          <button
+          <motion.button
             type="submit"
             disabled={isSubmitting}
             className="flex w-full items-center justify-center rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-black shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
             {isSubmitting ? "Logging in…" : "Log in"}
-          </button>
+          </motion.button>
         </form>
         <p className="mt-4 text-center text-xs text-zinc-400">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-medium text-amber-400 hover:text-amber-300">
-            Sign up
+            <motion.span whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+              Sign up
+            </motion.span>
           </Link>
         </p>
       </section>

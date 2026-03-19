@@ -6,10 +6,17 @@ import MenuSection from "@/components/menu/MenuSection";
 import CartDrawer from "@/components/cart/CartPlaceholder";
 import CheckoutPlaceholder from "@/components/checkout/CheckoutPlaceholder";
 
+const rotatingHooks = [
+  "Better than mess food 💀",
+  "Assignments can wait… Maggi can’t 😭",
+  "Your roommate will ask for a bite 👀",
+];
+
 export default function Home() {
   const [popupOpen, setPopupOpen] = useState(false);
   const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
   const [notificationBusy, setNotificationBusy] = useState(false);
+  const [hookIndex, setHookIndex] = useState(0);
 
   function urlBase64ToUint8Array(base64String: string) {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -38,6 +45,13 @@ export default function Home() {
       const t = window.setTimeout(() => setPopupOpen(true), delayMs);
       return () => window.clearTimeout(t);
     }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setHookIndex((prev) => (prev + 1) % rotatingHooks.length);
+    }, 2000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -111,7 +125,12 @@ export default function Home() {
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center overflow-x-hidden">
+    <motion.main
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="relative flex min-h-screen flex-col items-center overflow-x-hidden"
+    >
       <AnimatePresence>
         {notificationPopupOpen && (
           <>
@@ -218,7 +237,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Gradient hero background - mobile-first */}
+      {/* Hero */}
       <section className="relative flex min-h-[85vh] w-full flex-col items-center justify-center px-4 py-16 sm:min-h-[80vh] sm:px-6 sm:py-20 md:px-8">
         <div
           className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0c0a09] via-[#1c1917] to-[#09090b]"
@@ -242,20 +261,29 @@ export default function Home() {
             RG Bowl
           </motion.p>
           <h1 className="mb-3 text-4xl font-bold tracking-tight text-zinc-50 sm:text-5xl md:text-6xl">
-            Hot Maggi under 30 minutes.
+            Hot Maggi under 30 min
           </h1>
           <p className="mb-5 text-lg font-semibold text-amber-400 sm:text-xl md:text-2xl">
-            Not Quick. But Quality.
+            Hot Maggi. Freshly made.
+            <br />
+            Not quick. But worth it 😌
           </p>
-          <motion.p
-            className="mb-8 text-sm leading-relaxed text-zinc-400 sm:text-base md:text-lg"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.25, duration: 0.5 }}
-          >
-            Fresh comfort bowls made when you order. Built for late-night cravings in BTM, where
-            good food is worth the wait.
-          </motion.p>
+
+          <div className="mb-8 h-7">
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={rotatingHooks[hookIndex]}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35 }}
+                className="text-sm font-medium text-orange-300 sm:text-base"
+              >
+                {rotatingHooks[hookIndex]}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+
           <motion.div
             className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
             initial={{ opacity: 0, y: 12 }}
@@ -265,9 +293,10 @@ export default function Home() {
             <motion.button
               type="button"
               onClick={scrollToMenu}
-              whileHover={{ scale: 1.04 }}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 18px rgba(255,165,0,0.75)" }}
               whileTap={{ scale: 0.98 }}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-8 py-3.5 text-sm font-semibold text-black shadow-xl shadow-amber-400/25 transition-shadow hover:shadow-amber-400/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-400 px-8 py-3.5 text-sm font-semibold text-black transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              style={{ boxShadow: "0 0 10px rgba(255,165,0,0.5)" }}
             >
               Order Now
             </motion.button>
@@ -287,7 +316,53 @@ export default function Home() {
         <CheckoutPlaceholder />
       </section>
 
+      <motion.section
+        className="w-full max-w-6xl px-4 pb-14 sm:px-6 md:px-8"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.45 }}
+      >
+        <h2 className="mb-6 text-center text-2xl font-bold text-zinc-50 sm:text-3xl">Why RG Bowl?</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {[
+            { icon: "🍜", title: "Freshly Cooked", desc: "Every bowl is made after you order." },
+            { icon: "⚡", title: "Late Night Delivery", desc: "Cravings solved when most places are closed." },
+            { icon: "😎", title: "Built for PG Life", desc: "Comfort food for student and hostel nights." },
+          ].map((item) => (
+            <motion.div
+              key={item.title}
+              whileHover={{ scale: 1.03 }}
+              transition={{ duration: 0.3 }}
+              className="rounded-2xl border border-white/10 bg-white/5 p-5 text-center shadow-lg shadow-black/20"
+            >
+              <p className="mb-2 text-3xl">{item.icon}</p>
+              <h3 className="mb-1 text-lg font-semibold text-zinc-100">{item.title}</h3>
+              <p className="text-sm text-zinc-400">{item.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </motion.section>
+
+      <motion.section
+        className="w-full max-w-6xl px-4 pb-12 sm:px-6 md:px-8"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.45 }}
+      >
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-8 text-center shadow-xl shadow-black/20">
+          <p className="text-xl font-semibold leading-relaxed text-zinc-100 sm:text-2xl">
+            Built by interns.
+            <br />
+            Powered by hunger.
+            <br />
+            Loved by PGs.
+          </p>
+        </div>
+      </motion.section>
+
       <CartDrawer />
-    </main>
+    </motion.main>
   );
 }
