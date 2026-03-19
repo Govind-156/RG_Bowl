@@ -238,6 +238,16 @@ export async function POST(request: Request) {
         }
       }
 
+      const orderHour = new Date().getHours();
+      await tx.user.update({
+        where: { id: order.userId },
+        data: {
+          lastOrderAt: new Date(),
+          totalOrders: { increment: 1 },
+          preferredOrderTime: orderHour,
+        },
+      });
+
       return newOrder;
     });
 

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import SpinWheel from "@/components/SpinWheel";
 
 type SummaryItem = {
   id: string;
@@ -57,8 +58,11 @@ function SuccessContent() {
   const placedAt = searchParams.get("placed");
   const orderTimeLabel = formatOrderTime(placedAt);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [alreadySpun, setAlreadySpun] = useState(false);
 
   const shareText = `Bro I just ordered from RG Bowl 🍜🔥\nThis app is crazy 😂\nTry it: https://rgbowl.vercel.app`;
+  const spinKey = orderId ? `order_${orderId}` : "session_default";
 
   const confettiPieces = useMemo(
     () =>
@@ -82,6 +86,16 @@ function SuccessContent() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
   }, []);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(`rg_spin_done_${spinKey}`) === "1") {
+        setAlreadySpun(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, [spinKey]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 text-zinc-50 sm:px-6">
@@ -167,6 +181,14 @@ function SuccessContent() {
         <div className="flex flex-col gap-3">
           <button
             type="button"
+            disabled={alreadySpun}
+            onClick={() => setShowSpinWheel(true)}
+            className="inline-flex items-center justify-center rounded-full border border-violet-400/40 bg-violet-400/10 px-6 py-3 text-sm font-semibold text-violet-200 shadow-lg shadow-violet-500/10 transition hover:bg-violet-400/20 disabled:cursor-not-allowed disabled:border-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-500"
+          >
+            {alreadySpun ? "🎁 Spin used for this order" : "🎁 Spin & Win"}
+          </button>
+          <button
+            type="button"
             onClick={async () => {
               try {
                 setShareStatus("idle");
@@ -225,6 +247,22 @@ function SuccessContent() {
           </p>
         )}
       </motion.section>
+
+      {showSpinWheel && (
+        <SpinWheel
+          spinKey={spinKey}
+          onClose={() => {
+            setShowSpinWheel(false);
+            try {
+              if (sessionStorage.getItem(`rg_spin_done_${spinKey}`) === "1") {
+                setAlreadySpun(true);
+              }
+            } catch {
+              // ignore
+            }
+          }}
+        />
+      )}
 
       <style jsx global>{`
         @keyframes confetti-fall {

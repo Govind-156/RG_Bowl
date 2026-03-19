@@ -8,6 +8,19 @@ import CheckoutPlaceholder from "@/components/checkout/CheckoutPlaceholder";
 
 export default function Home() {
   const [popupOpen, setPopupOpen] = useState(false);
+  const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
+  const [notificationBusy, setNotificationBusy] = useState(false);
+
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
 
   useEffect(() => {
     try {
@@ -27,6 +40,71 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+    if (localStorage.getItem("rg_notifications_enabled") === "true") return;
+    if (Notification.permission === "granted" || Notification.permission === "denied") return;
+
+    const key = "rg_bowl_notification_prompt_shown";
+    if (sessionStorage.getItem(key) === "1") return;
+
+    const timer = window.setTimeout(() => {
+      sessionStorage.setItem(key, "1");
+      setNotificationPopupOpen(true);
+    }, 5000);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    try {
+      if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+        return;
+      }
+      setNotificationBusy(true);
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setNotificationPopupOpen(false);
+        return;
+      }
+
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        console.error("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+        setNotificationPopupOpen(false);
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      const existing = await registration.pushManager.getSubscription();
+      const subscription =
+        existing ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        }));
+
+      const res = await fetch("/api/save-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save push subscription");
+      }
+
+      localStorage.setItem("rg_notifications_enabled", "true");
+      setNotificationPopupOpen(false);
+    } catch (error) {
+      console.error("Notification setup failed", error);
+      setNotificationPopupOpen(false);
+    } finally {
+      setNotificationBusy(false);
+    }
+  };
+
   const scrollToMenu = () => {
     const el = document.getElementById("menu-section");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -35,6 +113,49 @@ export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-x-hidden">
       <AnimatePresence>
+        {notificationPopupOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[85] bg-black/70 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setNotificationPopupOpen(false)}
+              aria-hidden
+            />
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              className="fixed left-1/2 top-1/2 z-[90] w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-5 text-zinc-50 shadow-2xl shadow-black/50"
+              initial={{ opacity: 0, scale: 0.98, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 8 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <p className="text-sm font-semibold text-amber-200">
+                Get notified when your Maggi is ready 🍜?
+              </p>
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleEnableNotifications}
+                  disabled={notificationBusy}
+                  className="inline-flex flex-1 items-center justify-center rounded-full bg-amber-400 px-4 py-2.5 text-sm font-semibold text-black shadow-lg shadow-amber-400/25 transition hover:bg-amber-300 disabled:opacity-60"
+                >
+                  {notificationBusy ? "Please wait..." : "Allow 🔔"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNotificationPopupOpen(false)}
+                  className="inline-flex flex-1 items-center justify-center rounded-full border border-zinc-700 bg-transparent px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100"
+                >
+                  Not now
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
         {popupOpen && (
           <>
             <motion.div

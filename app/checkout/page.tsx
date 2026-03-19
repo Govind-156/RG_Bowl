@@ -120,6 +120,11 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [spinReward, setSpinReward] = useState<{
+    type: "discount" | "freebie";
+    value: number | string;
+    label: string;
+  } | null>(null);
 
   const user = session?.user as { name?: string | null; phone?: string | null } | undefined;
   useEffect(() => {
@@ -172,8 +177,54 @@ export default function CheckoutPage() {
   const couponDiscount = appliedCoupon?.discount ?? 0;
   const deliveryAmount =
     appliedCoupon?.type === "FREE_DELIVERY" ? 0 : DELIVERY_CHARGE;
-  const totalPrice = Math.max(0, discountedSubtotal - couponDiscount + deliveryAmount);
+  const amountAfterCoupon = Math.max(0, discountedSubtotal - couponDiscount + deliveryAmount);
+  const spinDiscount =
+    spinReward?.type === "discount"
+      ? Math.min(Number(spinReward.value) || 0, amountAfterCoupon)
+      : 0;
+  const totalPrice = Math.max(0, amountAfterCoupon - spinDiscount);
   const usedFreeClassicMaggi = freeClassicDiscount > 0;
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("rg_spin_reward");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as {
+        wonAt?: string;
+        reward?: { type?: string; value?: number | string; label?: string };
+      };
+      const rewardType = parsed.reward?.type;
+      const rewardValue = parsed.reward?.value;
+      const rewardLabel = parsed.reward?.label;
+      if (
+        (rewardType !== "discount" && rewardType !== "freebie") ||
+        rewardValue == null
+      ) {
+        return;
+      }
+
+      // Expire spin reward after 24 hours.
+      const wonAt = parsed.wonAt ? Date.parse(parsed.wonAt) : NaN;
+      const maxAgeMs = 24 * 60 * 60 * 1000;
+      if (Number.isFinite(wonAt) && Date.now() - wonAt > maxAgeMs) {
+        localStorage.removeItem("rg_spin_reward");
+        return;
+      }
+
+      setSpinReward({
+        type: rewardType,
+        value: rewardValue,
+        label:
+          typeof rewardLabel === "string" && rewardLabel.trim()
+            ? rewardLabel
+            : rewardType === "discount"
+              ? `₹${rewardValue} OFF`
+              : "Free reward",
+      });
+    } catch {
+      // ignore invalid localStorage payload
+    }
+  }, []);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -418,6 +469,7 @@ export default function CheckoutPage() {
               items: items.map((i) => ({ id: i.id, name: i.name, quantity: i.quantity })),
               totalAmount: totalPrice,
             };
+            localStorage.removeItem("rg_spin_reward");
             clearCart();
             const placed = Date.now();
             const successUrl = orderId
@@ -544,6 +596,31 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-emerald-400">
                 <span>Coupon ({appliedCoupon.code})</span>
                 <span>-₹{appliedCoupon.discount}</span>
+              </div>
+            )}
+            {spinReward?.type === "discount" && spinDiscount > 0 && (
+              <div className="flex justify-between text-cyan-300">
+                <span className="flex items-center gap-2">
+                  <span>🎁 Reward Applied ({spinReward.label})</span>
+                  <span className="rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200">
+                    Spin & Win
+                  </span>
+                </span>
+                <span>-₹{spinDiscount}</span>
+              </div>
+            )}
+            {spinReward?.type === "freebie" && (
+              <div className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-200">
+                <div className="mb-1 inline-flex items-center gap-2">
+                  <span>🎁 Reward Applied</span>
+                  <span className="rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-200">
+                    Spin & Win
+                  </span>
+                </div>
+                <div>
+                  Free {String(spinReward.value)} will be added{" "}
+                {String(spinReward.value).toLowerCase() === "cheese" ? "🧀" : "🧈"}
+                </div>
               </div>
             )}
             <div className="mt-2 border-t border-zinc-800 pt-3">

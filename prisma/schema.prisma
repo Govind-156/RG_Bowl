@@ -20,10 +20,15 @@ model User {
   referredBy              User?                 @relation("UserReferredBy", fields: [referredById], references: [id], onDelete: SetNull)
   referredUsers           User[]                @relation("UserReferredBy")
   freeClassicMaggiAvailable Boolean             @default(false)
+  lastOrderAt             DateTime?
+  totalOrders             Int                   @default(0)
+  preferredOrderTime      Int?
+  lastNotificationSentAt  DateTime?
   orders                  Order[]
   deliveryOrders          Order[]               @relation("DeliveryPartnerOrders")
   couponRedemptions       CouponRedemption[]
   passwordResetTokens     PasswordResetToken[]
+  pushSubscriptions       PushSubscription[]
 
   @@map("users")
 }
@@ -172,4 +177,14 @@ model ContactSubmission {
 enum ContactType {
   GENERAL
   COMPLAINT
+}
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  userId       String
+  subscription Json
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
 }
